@@ -1,0 +1,8 @@
+Set Task/Quick Open -> Skip
+Set Task/Problem Matcher -> Never Prompt (true)
+Add keybinding:
+    {
+    "key": "F5",
+    "command": "workbench.action.tasks.runTask",
+    "args": "genRun"
+    }

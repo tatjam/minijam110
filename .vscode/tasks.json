@@ -1,0 +1,6 @@
+{
+    "label": "genRun",
+    "type": "shell",
+    "command": "nimble run",
+    "tasks": []
+  }
