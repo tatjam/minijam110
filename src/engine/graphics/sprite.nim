@@ -2,6 +2,7 @@ import stb_image/read as stbi
 import nimgl/opengl
 import glm
 
+
 # An sprite allows displaying of an image, optionally clipped and colored
 type Sprite* = ref object
     texture_id: GLuint
@@ -10,7 +11,6 @@ type Sprite* = ref object
     clip*: Vec4f
     # Tint color
     color*: Vec4f
-
 
 
 proc create_sprite*(image: string): Sprite = 
@@ -27,7 +27,7 @@ proc create_sprite*(image: string): Sprite =
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST.GLint)
 
     # The OpenGL bindings are a bit annoying with the types of enums!
-    glTexImage2D(GL_TEXTURE_2D, 0.GLint, GL_RGBA.GLint, width.GLsizei, 
+    glTexImage2D(GL_TEXTURE_2D, 0'i32, GL_RGBA.GLint, width.GLsizei, 
         height.GLsizei, 0.GLint, GL_RGBA, GL_UNSIGNED_BYTE, addr data)
 
     return Sprite(texture_id: tex, texture_width: width, texture_height: height, 
@@ -35,9 +35,5 @@ proc create_sprite*(image: string): Sprite =
 
 
 
-proc draw(spr: Sprite, pos: Vec2f) =
-    glActiveTexture(GL_TEXTURE0)
-    glBindTexture(GL_TEXTURE_2D, spr.texture_id)
-    
 
 # An animated sprite uses sprite to display an image that has animation
