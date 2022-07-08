@@ -4,7 +4,7 @@ import glm
 import gl_rectangle
 import shader
 
-# An sprite allows displaying of an image, optionally clipped, colored and flipped
+# An sprite allows displaying of an image, optionally clipped, colored, scaled and flipped
 type Sprite* = ref object
     texture_id: GLuint
     shader*: Shader
@@ -12,11 +12,12 @@ type Sprite* = ref object
     # In UV coordinates
     clip*: Vec4f
     # Tint color
-    color*: Vec4f
+    tint*: Vec4f
     flip_h*, flip_v*: bool
     layer*: int
     # Position, to be used with the renderer
     position*: Vec2f
+    scale*: Vec2f
 
 proc create_sprite*(image: string): Sprite = 
     var width, height, nCh : int
@@ -36,8 +37,8 @@ proc create_sprite*(image: string): Sprite =
         height.GLsizei, 0.GLint, GL_RGBA, GL_UNSIGNED_BYTE, addr data[0])
 
     return Sprite(texture_id: tex, texture_width: width, texture_height: height, 
-        clip: vec4f(0, 0, 1, 1), color: vec4f(1.0, 1.0, 1.0, 1.0),
-        shader: load_shader("res/shader/sprite"))
+        clip: vec4f(0, 0, 1, 1), tint: vec4f(1.0, 1.0, 1.0, 1.0),
+        shader: load_shader("res/shader/sprite"), scale: vec2f(1.0, 1.0))
 
 
 proc do_draw*(sprite: Sprite) = 
@@ -47,8 +48,11 @@ proc do_draw*(sprite: Sprite) =
     sprite.shader.set_int("tex", 0)
     sprite.shader.set_int("flip_h", if sprite.flip_h: 1 else: 0)
     sprite.shader.set_int("flip_v", if sprite.flip_v: 1 else: 0)
-    sprite.shader.set_vec4("tint", sprite.color)
+    sprite.shader.set_vec4("tint", sprite.tint)
     sprite.shader.set_vec4("clip", sprite.clip)
+    var stform = mat4f().scale(sprite.scale.x * sprite.texture_width.toFloat, 
+        sprite.scale.y * sprite.texture_height.toFloat, 1.0)
+    sprite.shader.set_mat4("sprite_tform", stform)
     draw_rectangle()
 
 # An animated sprite uses sprite to display an image that has animation

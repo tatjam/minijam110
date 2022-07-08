@@ -1,5 +1,6 @@
 import nimgl/opengl
 import glm
+import std/tables
 
 type Shader* = distinct GLuint
 
@@ -24,35 +25,43 @@ proc get_errors(sh: GLuint, for_program: bool): string =
     # "Safe" as we have zero padding by OpenGL
     if success == 1: result = "OK" else: result = toString(infolog)
 
+var path_to_shader = initTable[string, Shader]()
+
 # Pass the path without .vs or .fs
 proc load_shader*(path: string): Shader =
-    let vshader = readFile(path & ".vs").cstring
-    let fshader = readFile(path & ".fs").cstring
+    if path_to_shader.contains(path):
+        return path_to_shader[path]
+    else:
 
-    var vert, frag: GLuint
-    vert = glCreateShader(GL_VERTEX_SHADER)
-    glShaderSource(vert, 1.GLsizei, unsafeAddr vshader, nil)
-    glCompileShader(vert)
-    var msg = get_errors(vert, false)
-    echo "Compile vertex " & path & ".vs: " & msg
+        let vshader = readFile(path & ".vs").cstring
+        let fshader = readFile(path & ".fs").cstring
 
-    frag = glCreateShader(GL_FRAGMENT_SHADER)
-    glShaderSource(frag, 1.GLsizei, unsafeAddr fshader, nil)
-    glCompileShader(frag)
-    msg = get_errors(frag, false)
-    echo "Compile fragment " & path & ".fs: " & msg
+        var vert, frag: GLuint
+        vert = glCreateShader(GL_VERTEX_SHADER)
+        glShaderSource(vert, 1.GLsizei, unsafeAddr vshader, nil)
+        glCompileShader(vert)
+        var msg = get_errors(vert, false)
+        echo "Compile vertex " & path & ".vs: " & msg
 
-    let sh = glCreateProgram()
-    glAttachShader(sh, vert)
-    glAttachShader(sh, frag)
-    glLinkProgram(sh)
-    msg = get_errors(frag, false)
-    echo "Link shader " & path & ": " & msg
+        frag = glCreateShader(GL_FRAGMENT_SHADER)
+        glShaderSource(frag, 1.GLsizei, unsafeAddr fshader, nil)
+        glCompileShader(frag)
+        msg = get_errors(frag, false)
+        echo "Compile fragment " & path & ".fs: " & msg
 
-    glDeleteShader(vert)
-    glDeleteShader(frag)
+        let sh = glCreateProgram()
+        glAttachShader(sh, vert)
+        glAttachShader(sh, frag)
+        glLinkProgram(sh)
+        msg = get_errors(frag, false)
+        echo "Link shader " & path & ": " & msg
 
-    return cast[Shader](sh)
+        glDeleteShader(vert)
+        glDeleteShader(frag)
+
+        let shader = cast[Shader](sh)
+        path_to_shader[path] = shader
+        return shader
 
 proc gl(shader: Shader) : GLuint =
     return cast[Gluint](shader)

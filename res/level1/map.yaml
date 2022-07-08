@@ -1,0 +1,35 @@
+seed: 1234
+tiles:
+-   class: ground
+    texture: res/level1/ground.png
+    edge: [99, 78, 35]
+    edge_width: 4
+    noise: 1.0
+    color: [101, 101, 0]
+
+-   class: ground
+    texture: res/level1/wood.png
+    edge: [89, 50, 21]
+    edge_width: 4
+    noise: 0.0
+    color: [101, 101, 101]
+
+areas:
+-   name: water
+    color: [0, 0, 255]
+
+points:
+-   name: tree1
+    color: [200, 0, 255]
+
+-   name: tree2
+    color: [255, 0, 255]
+
+-   name: log_spawn
+    color: [0, 255, 150]
+
+-   name: box_spawn
+    color: [0, 255, 200]
+
+-   name: player_spawn
+    color: [255, 0, -1]

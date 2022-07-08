@@ -1,9 +1,11 @@
 #version 330
-layout(location = 0) out vec3 color;
+layout(location = 0) out vec4 color;
+layout(location = 1) out vec3 effect;
 
 in vec2 vTex;
 
 uniform sampler2D tex;
+uniform vec4 tint;
 
 void main()
 {
@@ -11,7 +13,5 @@ void main()
 
     coord = vec2(vTex.x, 1.0 - vTex.y);
 
-    vec4 col = texture(tex, coord);
-
-    color = col.xyz;
+    color = texture(tex, coord) * tint;
 }

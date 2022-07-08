@@ -9,10 +9,10 @@ license     = "MIT"
 
 requires "nim >= 1.6.4"
 requires "nimgl"
-requires "https://github.com/oprypin/nim-chipmunk"
 requires "stb_image"
-requires "parasound"
 requires "glm"
+requires "https://github.com/zacharycarter/soloud-nim"
+requires "yaml"
 
 # Executable
 bin = @["src/main"]

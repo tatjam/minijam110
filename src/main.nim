@@ -1,20 +1,9 @@
 import nimgl/[glfw, opengl]
+import game/scenes/intro
 
-import engine/base
-import engine/graphics/sprite
-import engine/graphics/camera
-import glm
+include engine/base
 
-type MenuScene = ref object of Scene
-
-let scene = MenuScene()
-method update(this: MenuScene) =
-    return
-
-method render(this: MenuScene) = 
-    return
-
-load_scene(scene)
+load_scene(Level1Scene())
 
 proc update() = 
     if glfw_window.windowShouldClose:
