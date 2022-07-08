@@ -62,3 +62,18 @@ proc use*(shader: Shader) =
 
 proc set_mat4*(shader: Shader, name: cstring, mat: var Mat4f) =
     glUniformMatrix4fv(glGetUniformLocation(shader.gl, name), 1.GLsizei, false, mat.caddr)
+
+proc set_int*(shader: Shader, name: cstring, val: int32) = 
+    glUniform1i(glGetUniformLocation(shader.gl, name), val)
+
+proc set_vec3*(shader: Shader, name: cstring, val: Vec3f) = 
+    glUniform3f(glGetUniformLocation(shader.gl, name), val.x, val.y, val.z)
+
+proc set_vec3*(shader: Shader, name: cstring, x: float32, y: float32, z: float32) = 
+    glUniform3f(glGetUniformLocation(shader.gl, name), x, y, z)
+
+proc set_vec4*(shader: Shader, name: cstring, val: Vec4f) = 
+    glUniform4f(glGetUniformLocation(shader.gl, name), val.x, val.y, val.z, val.w)
+
+proc set_vec4*(shader: Shader, name: cstring, x: float32, y: float32, z: float32, w: float32) = 
+    glUniform4f(glGetUniformLocation(shader.gl, name), x, y, z, w)

@@ -1,5 +1,5 @@
 #version 330
-out vec4 FragColor;
+layout(location = 0) out vec3 color;
 
 in vec2 vTex;
 
@@ -13,5 +13,5 @@ void main()
 
     vec4 col = texture(tex, coord);
 
-    FragColor = vec4(col.xyz, 1.0);
+    color = col.xyz;
 }
