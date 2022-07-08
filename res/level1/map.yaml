@@ -1,16 +1,16 @@
 seed: 1234
+
+images:
+-   res/level1/map.png
+
 tiles:
 -   class: ground
     texture: res/level1/ground.png
-    edge: [99, 78, 35]
-    edge_width: 4
     noise: 1.0
-    color: [101, 101, 0]
+    color: [0, 0, 0]
 
 -   class: ground
     texture: res/level1/wood.png
-    edge: [89, 50, 21]
-    edge_width: 4
     noise: 0.0
     color: [101, 101, 101]
 
@@ -32,4 +32,4 @@ points:
     color: [0, 255, 200]
 
 -   name: player_spawn
-    color: [255, 0, -1]
+    color: [255, 0, 0]

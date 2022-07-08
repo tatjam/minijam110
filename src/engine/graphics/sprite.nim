@@ -19,6 +19,11 @@ type Sprite* = ref object
     position*: Vec2f
     scale*: Vec2f
 
+proc create_sprite*(image: GLuint, width: int, height: int): Sprite =
+    return Sprite(texture_id: image, texture_width: width, texture_height: height,
+        clip: vec4f(0, 0, 1, 1),  tint: vec4f(1.0, 1.0, 1.0, 1.0),
+        shader: load_shader("res/shader/sprite"), scale: vec2f(1.0, 1.0))
+
 proc create_sprite*(image: string): Sprite = 
     var width, height, nCh : int
     var data = stbi.load(image, width, height, nCh, 0)
@@ -36,10 +41,7 @@ proc create_sprite*(image: string): Sprite =
     glTexImage2D(GL_TEXTURE_2D, 0'i32, GL_RGBA.GLint, width.GLsizei, 
         height.GLsizei, 0.GLint, GL_RGBA, GL_UNSIGNED_BYTE, addr data[0])
 
-    return Sprite(texture_id: tex, texture_width: width, texture_height: height, 
-        clip: vec4f(0, 0, 1, 1), tint: vec4f(1.0, 1.0, 1.0, 1.0),
-        shader: load_shader("res/shader/sprite"), scale: vec2f(1.0, 1.0))
-
+    return create_sprite(tex, width, height);
 
 proc do_draw*(sprite: Sprite) = 
     glActiveTexture(GL_TEXTURE0)
