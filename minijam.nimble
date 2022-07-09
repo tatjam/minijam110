@@ -13,6 +13,7 @@ requires "stb_image"
 requires "glm"
 requires "https://github.com/zacharycarter/soloud-nim"
 requires "yaml"
+requires "polymorph"
 
 # Executable
 bin = @["src/main"]

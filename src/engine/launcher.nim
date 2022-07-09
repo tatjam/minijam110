@@ -36,7 +36,7 @@ proc launch_game*() =
 
         update_fnc()
         scene_manager_update()
-        if game_ended:
+        if should_quit:
             break
         
         glClearColor(0.0, 0.0, 0.0, 1.0)

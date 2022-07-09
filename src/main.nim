@@ -4,7 +4,7 @@ import game/scenes/level1
 
 include engine/base
 
-load_scene(Level1Scene())
+goto_scene(Level1Scene())
 
 
 proc update() = 
