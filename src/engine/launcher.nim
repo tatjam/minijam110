@@ -12,7 +12,7 @@ glfwWindowHint(GLFWOpenglForwardCompat, GLFW_TRUE) # Used for Mac
 glfwWindowHint(GLFWOpenglProfile, GLFW_OPENGL_CORE_PROFILE)
 glfwWindowHint(GLFWResizable, GLFW_FALSE)
 
-let glfw_window*: GLFWWindow = glfwCreateWindow(800, 600, "Minijam 110")
+let glfw_window*: GLFWWindow = glfwCreateWindow(1280, 768, "Minijam 110")
 if glfw_window == nil:
     quit(-1)
     
@@ -23,7 +23,7 @@ glfwSwapInterval(1)
 
 assert glInit()
 
-renderer = create_renderer("res/shader/fullscreen", 800, 600, 2)
+renderer = create_renderer("res/shader/fullscreen", 1280, 768, 2)
 
 init_soloud()
 
@@ -35,12 +35,10 @@ proc launch_game*() =
         glfwPollEvents()
 
         update_fnc()
+        renderer.update(dt)
         scene_manager_update()
         if should_quit:
             break
-        
-        glClearColor(0.0, 0.0, 0.0, 1.0)
-        glClear(GL_COLOR_BUFFER_BIT)
 
         renderer.before_render()
         if render_fnc != nil: render_fnc()

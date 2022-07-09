@@ -1,0 +1,7 @@
+sprite: res/enemies/rockman.png
+animations:
+-   name: "default"
+    loop: false
+    frames:
+        -   clip: [96, 96, 32, 32]
+            duration: 0.1

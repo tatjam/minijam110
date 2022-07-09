@@ -22,6 +22,7 @@ const LAYER_CAP = 100000
 
 type Renderer* = ref object
     camera*: Camera 
+    int_t: float
     fullscreen_shader*: Shader
     fbuffer, rnd_texture, light_texture, depth_buffer: GLuint
     # All drawable calls while layer_bias is enabled get increased by LAYER_CAP
@@ -55,7 +56,7 @@ proc resize(renderer: var Renderer, width: int, height: int) =
     glGenTextures(1, addr renderer.light_texture)
     glBindTexture(GL_TEXTURE_2D, renderer.light_texture)
 
-    glTexImage2D(GL_TEXTURE_2D, 0'i32, GL_RGB.GLint, width.GLsizei, height.GLsizei, 0.GLint, GL_RGB, GL_UNSIGNED_BYTE, nil)
+    glTexImage2D(GL_TEXTURE_2D, 0'i32, GL_RGBA.GLint, width.GLsizei, height.GLsizei, 0.GLint, GL_RGBA, GL_UNSIGNED_BYTE, nil)
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST.GLint)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST.GLint)
@@ -81,24 +82,31 @@ proc create_renderer*(shader_path: string, width: int, height: int, scale: int):
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
     return rnd
 
+# Call to get timed effect
+proc update*(renderer: Renderer, dt: float) = 
+    renderer.int_t += dt
+
 # Render stuff to the framebuffer after this call
 proc before_render*(renderer: Renderer) =
     glViewport(0, 0, renderer.width.GLsizei, renderer.height.GLsizei)
-    glBindFramebuffer(GL_FRAMEBUFFER, renderer.fbuffer)
+    glBindFramebuffer(GL_FRAMEBUFFER, renderer.fbuffer) 
+    glClearColor(0.0, 0.0, 0.0, 1.0)
+    glClear(GL_COLOR_BUFFER_BIT)
 
 # Stop rendering stuff to the framebuffer after this call
 proc render*(renderer: Renderer) = 
-
     glViewport(0, 0, (renderer.width * renderer.scale).GLsizei, (renderer.height * renderer.scale).GLsizei)
     # Draw the fullscreen rectangle, binding texture 0
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     renderer.fullscreen_shader.use()
     glActiveTexture(GL_TEXTURE0)
     glBindTexture(GL_TEXTURE_2D, renderer.rnd_texture)
-    renderer.fullscreen_shader.set_int("vTex", 0)
+    renderer.fullscreen_shader.set_int("tex", 0)
     glActiveTexture(GL_TEXTURE1)
     glBindTexture(GL_TEXTURE_2D, renderer.light_texture)
-    renderer.fullscreen_shader.set_int("fTex", 1)
+    renderer.fullscreen_shader.set_int("fxtex", 1)
+    
+    renderer.fullscreen_shader.set_float("t", renderer.int_t)
 
     var tform = translate(mat4f(), -1.0, -1.0, 0.0)
         .scale(vec3f(2.0))

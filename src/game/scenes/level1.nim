@@ -15,10 +15,11 @@ method init(this: Level1Scene) =
     
     this.level.init("res/level1/map.yaml", 8)
     renderer.camera.scale = 1.0
-    renderer.camera.center = vec2f(27 * 8.0, 21 * 8.0)
+    renderer.camera.center = vec2f(0 * 8.0, 15 * 8.0)
 
 
-method update(this: Level1Scene) = 
+method update(this: Level1Scene) =
+    this.level.update()
     return
 method render(this: Level1Scene) = 
-    this.level.map.drawer.draw_tiles()
+    this.level.draw()

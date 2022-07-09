@@ -1,0 +1,18 @@
+sprite: res/player/player.png
+fx_sprite: res/player/player_emit.png
+animations:
+-   name: "idle"
+    loop: true
+    frames:
+        -   clip: [0, 0, 40, 76]
+            duration: 0.2
+        -   clip: [40, 0, 40, 76]
+            duration: 0.2
+        -   clip: [80, 0, 40, 76]
+            duration: 0.2
+        -   clip: [120, 0, 40, 76]
+            duration: 0.2
+        -   clip: [80, 0, 40, 76]
+            duration: 0.2
+        -   clip: [40, 0, 40, 76]
+            duration: 0.2

@@ -62,6 +62,7 @@ type Tile* = ref object
     width*, height*: int
     image*: GLuint
     position*: Vec2i
+
 type MapDrawer* = object
     sprites: seq[Sprite]
 
@@ -72,7 +73,7 @@ proc draw_tiles*(map: MapDrawer) =
 proc create_map_drawer*(map: Table[string, seq[Tile]]): MapDrawer = 
     for class, tiles in map:
         for tile in tiles:
-            let sprite = create_sprite(tile.image, tile.width, tile.height)
+            let sprite = create_sprite(tile.image, 0, tile.width, tile.height)
             # We must make a few adjustments as positioning is inverted
             sprite.position = vec2f(tile.position.x.toFloat, tile.position.y.toFloat)
             echo tile.position
@@ -81,6 +82,8 @@ proc create_map_drawer*(map: Table[string, seq[Tile]]): MapDrawer =
 
 type Map* = ref object
     drawer*: MapDrawer
+    # We must keep the segments
+    segments: seq[SegmentShape]
     points*: Table[string, seq[Vec2f]]
 
 proc hash(x: Vec3i): Hash =
@@ -246,7 +249,8 @@ proc bilinear_interp(tl: Vec3i, tr: Vec3i, bl: Vec3i, br: Vec3i, h: float, v: fl
     let sum = h_interp_top + h_interp_bottom
     return vec3i(sum.x.int32, sum.y.int32, sum.z.int32)
 
-proc marching_squares(tile: Image, scale: int, tile_info: Table[Vec3i, TileData], space: Space): Tile =
+proc marching_squares(tile: Image, scale: int, tile_info: Table[Vec3i, TileData], space: Space,
+    segments: var seq[SegmentShape]): Tile =
     let bounds = get_bounds(tile)
     echo "Processing tile of size: " & $(bounds.z - bounds.x + 1) & "x" & $(bounds.w - bounds.y + 1)
     let pos = vec2i(bounds.x * scale.int32, bounds.y * scale.int32)
@@ -260,8 +264,8 @@ proc marching_squares(tile: Image, scale: int, tile_info: Table[Vec3i, TileData]
             let tex_x = (x - bounds.x) * scale
             let tex_y = (y - bounds.y) * scale
             # For colliders:
-            let tx = (x * scale).toFloat
-            let ty = (y * scale).toFloat
+            let tx = x.toFloat
+            let ty = y.toFloat
 
             let tl = not is_pixel_white(tile, x - 1, y - 1)
             let tr = not is_pixel_white(tile, x, y - 1)
@@ -315,11 +319,17 @@ proc marching_squares(tile: Image, scale: int, tile_info: Table[Vec3i, TileData]
                 else:
                     discard
 
-                let segment = newSegmentShape(space.staticBody, v0, v1, 0)
-                discard space.addShape(segment)
+                v0 = v(v0.x * scale.toFloat, v0.y * scale.toFloat)
+                v1 = v(v1.x * scale.toFloat, v1.y * scale.toFloat)
+                v2 = v(v2.x * scale.toFloat, v2.y * scale.toFloat)
+                v3 = v(v3.x * scale.toFloat, v3.y * scale.toFloat)
+                var segment = newSegmentShape(space.staticBody, v0, v1, 3)
+                segments.add(segment)
+                discard space.addShape(segments[^1])
                 if has_two:
-                    let segment2 = newSegmentShape(space.staticBody, v2, v3, 0)
-                    discard space.addShape(segment2)
+                    let segment2 = newSegmentShape(space.staticBody, v2, v3, 3)
+                    segments.add(segment2)
+                    discard space.addShape(segments[^1])
 
 
             var tldata, trdata, bldata, brdata: Option[TileData]
@@ -510,10 +520,11 @@ proc load_map*(map: string, scale: int, space: Space): Map =
     # Run marching squares
     echo "Running marching squares, this may take a while!"
     var ground_tiles: Table[string, seq[Tile]]
+    var segments: seq[SegmentShape]
     for class, images in ground_tiles_img:
         var tiles: seq[Tile]
         for image in images:
-            tiles.add(marching_squares(image, scale, tile_textures, space))
+            tiles.add(marching_squares(image, scale, tile_textures, space, segments))
         ground_tiles[class] = tiles
 
     # Load points
@@ -529,7 +540,7 @@ proc load_map*(map: string, scale: int, space: Space): Map =
                         let pf = vec2f((x * scale).toFloat, (y * scale).toFloat)
                         points[point.name].add(pf)
     let drawer = create_map_drawer(ground_tiles)
-    return Map(drawer: drawer)
+    return Map(drawer: drawer, segments: segments)
 
 
 

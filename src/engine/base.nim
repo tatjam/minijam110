@@ -7,5 +7,6 @@ import graphics/camera
 import globals
 import base/renderer as rnd
 import audio/audio_engine
+import physics/chipmunk
 import solouddotnim
 import glm

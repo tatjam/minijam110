@@ -1,0 +1,16 @@
+sprite: res/enemies/rockman.png
+fx_sprite: res/enemies/rockman_emit.png
+animations:
+-   name: "idle"
+    loop: true
+    frames:
+        -   clip: [0, 0, 32, 32]
+            duration: 0.2
+        -   clip: [32, 0, 32, 32]
+            duration: 0.2
+        -   clip: [64, 0, 32, 32]
+            duration: 0.2
+        -   clip: [0, 0, 32, 32]
+            duration: 0.2
+        -   clip: [96, 0, 32, 32]
+            duration: 0.6
