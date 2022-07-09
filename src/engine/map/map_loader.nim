@@ -14,8 +14,8 @@ import std/random
 import std/hashes
 import std/options
 
-
 export tables
+export chipmunk
 
 type TileInfo = object
     class: string
@@ -52,14 +52,13 @@ type TileData = object
     noise*: float
 
 
-# A tile is an image, alongside a set of concave collision polygons and its location
-# in the whole world (coordinates in original pixel image)
+# A tile is an image, alongside a set of collision lines and its location
+# in the whole world (coordinates in final image)
 # Each separate set of pixels will form a tile
 type Tile* = ref object
     width*, height*: int
     image*: GLuint
     position*: Vec2i
-    #polys: seq[PolyShape]
 
 proc hash(x: Vec3i): Hash =
     return x.x.hash !& x.y.hash !& x.z.hash
@@ -224,27 +223,81 @@ proc bilinear_interp(tl: Vec3i, tr: Vec3i, bl: Vec3i, br: Vec3i, h: float, v: fl
     let sum = h_interp_top + h_interp_bottom
     return vec3i(sum.x.int32, sum.y.int32, sum.z.int32)
 
-proc marching_squares(tile: Image, scale: int, tile_info: Table[Vec3i, TileData]): Tile =
+proc marching_squares(tile: Image, scale: int, tile_info: Table[Vec3i, TileData], space: Space): Tile =
     let bounds = get_bounds(tile)
     echo "Processing tile of size: " & $(bounds.z - bounds.x + 1) & "x" & $(bounds.w - bounds.y + 1)
-    let pos = vec2i(bounds.x, bounds.y)
+    let pos = vec2i(bounds.x * scale.int32, bounds.y * scale.int32)
+    echo bounds
     var image = create_image((bounds.z - bounds.x + 2) * scale, (bounds.w - bounds.y + 2) * scale)
+    var body = newBody(1.0, 1.0)
+
     # We travel the corners of the pixels in the map texture
     for x in countup(bounds.x, bounds.z + 1):
         for y in countup(bounds.y, bounds.w + 1):
             let tex_x = (x - bounds.x) * scale
             let tex_y = (y - bounds.y) * scale
+            # For colliders:
+            let tx = (x * scale).toFloat
+            let ty = (y * scale).toFloat
 
             let tl = not is_pixel_white(tile, x - 1, y - 1)
             let tr = not is_pixel_white(tile, x, y - 1)
             let bl = not is_pixel_white(tile, x - 1, y)
             let br = not is_pixel_white(tile, x, y)
             
-            # Early optimization
-            if not(tl or tr or bl or br):
-                continue
 
             var ms_case = tl.int * 8 + tr.int * 4 + br.int * 2 + bl.int
+            # Early optimization
+            if ms_case == 0:
+                continue
+
+            # Generate the segment(s)
+            if ms_case != 15:
+                var v0: Vect
+                var v1: Vect
+                var has_two: bool
+                var v2: Vect
+                var v3: Vect
+                case ms_case:
+                of 1, 14:
+                    v0 = v(tx - 0.5, ty + 0.5)
+                    v1 = v(tx, ty + 1.0)
+                of 2, 13:
+                    v0 = v(tx + 0.5, ty + 0.5)
+                    v1 = v(tx, ty + 1.0)
+                of 3, 12:
+                    v0 = v(tx - 0.5, ty)
+                    v1 = v(tx + 0.5, ty)
+                of 4, 11:
+                    v0 = v(tx + 0.5, ty)
+                    v1 = v(tx, ty - 0.5)
+                of 5:
+                    v0 = v(tx - 0.5, ty)
+                    v1 = v(tx, ty - 0.5)
+                    has_two = true
+                    v2 = v(tx + 0.5, ty + 0.5)
+                    v1 = v(tx, ty + 1.0)
+                of 6, 9:
+                    v0 = v(tx, ty - 0.5)
+                    v1 = v(tx, ty + 0.5)
+                of 7, 8:
+                    v0 = v(tx - 0.5, ty)
+                    v1 = v(tx, ty - 0.5)
+                of 10:
+                    v0 = v(tx - 0.5, ty + 0.5)
+                    v1 = v(tx, ty + 1.0)
+                    has_two = true
+                    v2 = v(tx + 0.5, ty)
+                    v3 = v(tx, ty - 0.5)
+                else:
+                    discard
+
+                let segment = newSegmentShape(space.staticBody, v0, v1, 0)
+                discard space.addShape(segment)
+                if has_two:
+                    let segment2 = newSegmentShape(space.staticBody, v2, v3, 0)
+                    discard space.addShape(segment2)
+
 
             var tldata, trdata, bldata, brdata: Option[TileData]
 
@@ -402,7 +455,7 @@ proc extract_separated_tiles(imageo: Image): seq[Image] =
 
     return tiles
 
-proc load_map*(map: string): Table[string, seq[Tile]] =
+proc load_map*(map: string, scale: int, space: Space): Table[string, seq[Tile]] =
     let map_info = load_map_info(map)
     # Load images
     var images: seq[Image]
@@ -437,7 +490,7 @@ proc load_map*(map: string): Table[string, seq[Tile]] =
     for class, images in ground_tiles_img:
         var tiles: seq[Tile]
         for image in images:
-            tiles.add(marching_squares(image, 16, tile_textures))
+            tiles.add(marching_squares(image, scale, tile_textures, space))
         ground_tiles[class] = tiles
     
     return ground_tiles

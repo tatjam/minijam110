@@ -11,7 +11,7 @@ void main()
 {
     vec2 coord = vTex;
 
-    coord = vec2(vTex.x, 1.0 - vTex.y);
+    coord = vec2(vTex.x, vTex.y);
 
     color = texture(tex, coord) * tint;
 }

@@ -1,18 +1,20 @@
 include ../../engine/base
-import ../../engine/map/map_loader
+import ../../engine/map/map_drawer
 import ../../engine/graphics/sprite
 
 type Level1Scene* = ref object of Scene
     music: WavHandle
-    sprite: Sprite
+    map_drawer: MapDrawer
+    physics_space: Space
 
 method init(this: Level1Scene) =
     this.music = load_sound("res/level1/music.mp3")
-    let tiles = load_map("res/level1/map.yaml")
-    let tile = tiles["ground"][0]
-    this.sprite = create_sprite(tile.image, tile.width, tile.height)
-    this.sprite.scale = vec2f(1, 1)
     #discard play_sound(this.music, true)
+    
+    this.physics_space = newSpace()
+    this.map_drawer = create_map_drawer("res/level1/map.yaml", 16, this.physics_space)
+    renderer.camera.scale = 0.4
+    renderer.camera.center = vec2f(27 * 16.0, 21 * 16.0)
 
 method render(this: Level1Scene) = 
-    renderer.draw(this.sprite)
+    this.map_drawer.draw_tiles()

@@ -38,7 +38,7 @@ method update(this: IntroScene) =
         this.frame = not this.frame
         this.frame_timer = 0.0
 
-    this.sun.position.y -= 3.0 * dt
+    this.sun.position.y += 3.0 * dt
     this.stars.tint.w = this.time / 20.0
 
     if this.time > 27:
