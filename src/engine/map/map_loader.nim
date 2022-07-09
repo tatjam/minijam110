@@ -13,6 +13,9 @@ import std/tables
 import std/random
 import std/hashes
 import std/options
+import ../graphics/sprite
+import ../base/renderer as rnd
+import ../globals
 
 export tables
 export chipmunk
@@ -59,6 +62,26 @@ type Tile* = ref object
     width*, height*: int
     image*: GLuint
     position*: Vec2i
+type MapDrawer* = object
+    sprites: seq[Sprite]
+
+proc draw_tiles*(map: MapDrawer) = 
+    for sprite in map.sprites:
+        renderer.draw(sprite)
+
+proc create_map_drawer*(map: Table[string, seq[Tile]]): MapDrawer = 
+    for class, tiles in map:
+        for tile in tiles:
+            let sprite = create_sprite(tile.image, tile.width, tile.height)
+            # We must make a few adjustments as positioning is inverted
+            sprite.position = vec2f(tile.position.x.toFloat, tile.position.y.toFloat)
+            echo tile.position
+            result.sprites.add(sprite)
+
+
+type Map* = ref object
+    drawer*: MapDrawer
+    points*: Table[string, seq[Vec2f]]
 
 proc hash(x: Vec3i): Hash =
     return x.x.hash !& x.y.hash !& x.z.hash
@@ -341,8 +364,8 @@ proc marching_squares(tile: Image, scale: int, tile_info: Table[Vec3i, TileData]
             for sy in countup(0, scale - 1):
                 for sx in countup(0, scale - 1):
                     # Interpolate between corners
-                    let h = sx / scale
-                    let v = sy / scale
+                    let h = sx / (scale - 1)
+                    let v = sy / (scale - 1)
                     let noise_interp = bilinear_interp(tld.noise, trd.noise, bld.noise, brd.noise, h, v)
                     
                     var noise_val = ((rand(200) - 100).toFloat / 100.0) * noise_interp
@@ -353,7 +376,7 @@ proc marching_squares(tile: Image, scale: int, tile_info: Table[Vec3i, TileData]
                     let tls = tld.texture.get_pixel_wrap(tex)
                     let trs = trd.texture.get_pixel_wrap(tex)
                     let bls = bld.texture.get_pixel_wrap(tex)
-                    let brs = bld.texture.get_pixel_wrap(tex)
+                    let brs = brd.texture.get_pixel_wrap(tex)
                     
                     let tex_interp = bilinear_interp(tls, trs, bls, brs, h, v)
 
@@ -455,7 +478,7 @@ proc extract_separated_tiles(imageo: Image): seq[Image] =
 
     return tiles
 
-proc load_map*(map: string, scale: int, space: Space): Table[string, seq[Tile]] =
+proc load_map*(map: string, scale: int, space: Space): Map =
     let map_info = load_map_info(map)
     # Load images
     var images: seq[Image]
@@ -492,8 +515,21 @@ proc load_map*(map: string, scale: int, space: Space): Table[string, seq[Tile]] 
         for image in images:
             tiles.add(marching_squares(image, scale, tile_textures, space))
         ground_tiles[class] = tiles
-    
-    return ground_tiles
+
+    # Load points
+    var points: Table[string, seq[Vec2f]]
+    for point in map_info.points:
+        points[point.name] = newSeq[Vec2f]()
+        # Search for the color over the whole map
+        let color = vec3i(point.color[0].int32, point.color[1].int32, point.color[2].int32)
+        for image in images:
+            for x in countup(0, image.width - 1):
+                for y in countup(0, image.height - 1):
+                    if image.get_pixel(vec2i(x.int32, y.int32)) == color:
+                        let pf = vec2f((x * scale).toFloat, (y * scale).toFloat)
+                        points[point.name].add(pf)
+    let drawer = create_map_drawer(ground_tiles)
+    return Map(drawer: drawer)
 
 
 

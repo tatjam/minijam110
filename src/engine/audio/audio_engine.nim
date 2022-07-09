@@ -1,6 +1,5 @@
 # Very simple wrapper for the soloud engine so its more nim-like
 
-import system/io
 import solouddotnim
 
 var soloud : ptr Soloud

@@ -17,7 +17,7 @@ type IntroScene* = ref object of Scene
     frame: bool
     frame_timer: float
 
-method init(this: IntroScene) =
+method init(this: var IntroScene) =
     renderer.camera.center = vec2f(200, 150)
     this.stars = create_sprite("res/intro/stars.png")
     this.sky = create_sprite("res/intro/sky.png")
@@ -31,7 +31,9 @@ method init(this: IntroScene) =
     this.music = load_sound("res/intro/intro.mp3")
     discard play_sound(this.music)
 
-method update(this: IntroScene) =
+method update(this: var IntroScene) =
+    this.base_update()
+
     this.time += dt
     this.frame_timer += dt
     if this.frame_timer > 0.5:
@@ -44,7 +46,9 @@ method update(this: IntroScene) =
     if this.time > 27:
         goto_scene(Level1Scene())
 
-method render(this: IntroScene) = 
+method render(this: var IntroScene) = 
+    this.base_render()
+
     renderer.draw(this.sky)
     renderer.draw(this.sun)
     if this.frame:

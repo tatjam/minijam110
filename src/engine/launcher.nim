@@ -1,5 +1,4 @@
 import nimgl/[glfw, opengl]
-import os
 import base/renderer as rnd
 import base/scene_manager
 import globals
