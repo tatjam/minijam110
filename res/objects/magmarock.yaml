@@ -1,0 +1,9 @@
+sprite: res/objects/magmarock.png
+fx_sprite: res/objects/magmarock_emit.png
+scale_origin: [60.0, 60.0]
+animations:
+-   name: "idle"
+    loop: true
+    frames:
+        -   clip: [0, 0, 120, 120]
+            duration: 1.0

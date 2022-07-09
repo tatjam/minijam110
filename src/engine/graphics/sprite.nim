@@ -22,7 +22,11 @@ type Sprite* = ref object
     layer*: int
     # Position, to be used with the renderer
     position*: Vec2f
+    rotation: float
     scale*: Vec2f
+    # Movement in pixels respect to the sprite top-left corner
+    # Also used for rotation
+    scale_origin*: Vec2f
 
 proc create_sprite*(image: GLuint, fx_image: GLuint, width: int, height: int): Sprite =
     return Sprite(texture_id: image, fx_texture_id: fx_image, texture_width: width, texture_height: height,
@@ -107,8 +111,18 @@ proc do_draw*(sprite: Sprite) =
     sprite.shader.set_int("flip_v", if sprite.flip_v: 1 else: 0)
     sprite.shader.set_vec4("tint", sprite.tint)
     sprite.shader.set_vec4("clip", sprite.clip)
-    var stform = mat4f().scale(sprite.scale.x * sprite.texture_width.toFloat * sprite.clip.z, 
-        sprite.scale.y * sprite.texture_height.toFloat * sprite.clip.w, 1.0)
+    let w = sprite.texture_width.toFloat
+    let h = sprite.texture_height.toFloat
+    # Scale is applied respect to the center, so first center, scale, and uncenter
+    # we also adjust the sprite so it's correctly clipped
+    # Note that the whole sprite is being transformed!
+    var stform = mat4f()
+        .scale(sprite.clip.z, sprite.clip.w, 1.0)
+        .scale(w, h, 1.0)
+        .translate(sprite.scale_origin.x, sprite.scale_origin.y, 0.0)
+        .scale(sprite.scale.x, sprite.scale.y, 1.0)
+        .rotate(sprite.rotation, 0, 0, 1)
+        .translate(-sprite.scale_origin.x, -sprite.scale_origin.y, 0.0)
     sprite.shader.set_mat4("sprite_tform", stform)
 
     if sprite.fx_texture_id != 0:
@@ -127,10 +141,14 @@ proc do_draw*(sprite: Sprite) =
 
 
 proc `center_position=`*(sprite: Sprite, pos: Vec2f) = 
-    sprite.position = vec2f(pos.x - sprite.texture_width.toFloat * 0.5, pos.y - sprite.texture_height.toFloat * 0.5)
+    sprite.position = vec2f(
+        pos.x - sprite.texture_width.toFloat * 0.5 * sprite.clip.z, 
+        pos.y - sprite.texture_height.toFloat * 0.5 * sprite.clip.w)
 
 proc center_position*(sprite: Sprite): Vec2f = 
-    return vec2f(sprite.position.x + sprite.texture_width.toFloat * 0.5, sprite.position.y + sprite.texture_height.toFloat * 0.5)
+    return vec2f(
+    sprite.position.x + sprite.texture_width.toFloat * 0.5 * sprite.clip.z, 
+    sprite.position.y + sprite.texture_height.toFloat * 0.5 * sprite.clip.w)
 
 type AnimationFrame* = object
     frame: Vec4f
@@ -177,8 +195,15 @@ proc shader*(sprite: AnimatedSprite): Shader =
 
 proc `center_position=`*(sprite: AnimatedSprite, pos: Vec2f) = 
     sprite.sprite.center_position = pos
+
 proc center_position*(sprite: AnimatedSprite): Vec2f = 
     return sprite.sprite.center_position
+
+proc `rotation=`*(sprite: AnimatedSprite, r: float) = 
+    sprite.sprite.rotation = r
+
+proc rotation*(sprite: AnimatedSprite): float = 
+    return sprite.sprite.rotation
 
 proc animate*(sprite: var AnimatedSprite, dt: float) = 
     if sprite.paused:
@@ -196,11 +221,12 @@ proc animate*(sprite: var AnimatedSprite, dt: float) =
                 if anim.frame < anim.frames.len:
                     sprite.sprite.clip = anim.frames[anim.frame].frame
 
-proc start_anim*(sprite: AnimatedSprite, anim: string) =
-    sprite.cur_anim = anim
-    if sprite.animations.has_key(sprite.cur_anim):
-        sprite.animations[sprite.cur_anim].time = 0
-        sprite.animations[sprite.cur_anim].frame = 0
+proc start_anim*(sprite: AnimatedSprite, anim: string, restart: bool = false) =
+    if sprite.cur_anim != anim or restart:
+        sprite.cur_anim = anim
+        if sprite.animations.has_key(sprite.cur_anim):
+            sprite.animations[sprite.cur_anim].time = 0
+            sprite.animations[sprite.cur_anim].frame = 0
 
 type FrameData = object
     clip: array[4, int]
@@ -213,7 +239,8 @@ type AnimationData = object
 
 type AnimatedSpriteData = object
     sprite: string
-    fx_sprite: Option[string]
+    scale_origin: array[2, float]
+    fx_sprite: string
     animations: seq[AnimationData]
 
 # Takes the YAML of the sprite
@@ -224,15 +251,14 @@ proc create_animated_sprite*(path: string): AnimatedSprite =
     s.close()
 
     var sprite: Sprite
-    if data.fx_sprite.isSome:
-        sprite = create_sprite(data.sprite, data.fx_sprite.get)
+    if data.fx_sprite != "none":
+        sprite = create_sprite(data.sprite, data.fx_sprite)
     else:
         sprite = create_sprite(data.sprite)
 
     var animations: Table[string, Animation]
-    var cur_anim: string
+    var cur_anim = data.animations[0].name
     for animation in data.animations:
-        cur_anim = animation.name
         var anim = Animation()
         anim.time = 0.0
         anim.frame = 0
@@ -248,5 +274,8 @@ proc create_animated_sprite*(path: string): AnimatedSprite =
         animations[animation.name] = anim
 
     sprite.clip = animations[cur_anim].frames[0].frame
+    sprite.scale_origin = vec2f(
+        data.scale_origin[0] / (sprite.texture_width.toFloat * sprite.clip.z), 
+        data.scale_origin[1] / (sprite.texture_height.toFloat * sprite.clip.w))
 
     return AnimatedSprite(sprite: sprite, animations: animations, cur_anim: cur_anim, paused: false)

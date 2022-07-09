@@ -1,34 +1,68 @@
 include ../../engine/base
 
 import enemies/rockman
+import player
+import random
 
+import ../userdata
 
 type 
     EnemyKind = enum
         ekRockman
 
-    Enemy* = object 
-        kind: EnemyKind
+    Enemy* = ref object 
+        case kind: EnemyKind
+        of ekRockman:
+            retreat_timer: float
+            retreat_goal: float
+            retreat: bool
+
         sprite*: AnimatedSprite
         phys_body: Body
         phys_shape: Shape
+        user_data: UserData
 
 proc create_rockman*(pos: Vec2f, space: Space): Enemy = 
-    let sprite = create_animated_sprite("res/enemies/rockman.yaml")
-    let mass = 100.0
-    let moment = momentForCircle(mass, 0, 16.0, vzero)
+    result = new(Enemy)
+    result.sprite = create_animated_sprite("res/enemies/rockman.yaml")
+    let mass = 50.0
+    let moment = momentforBox(mass, 31.0, 31.0)
 
-    let phys_body = space.addBody(newBody(mass, moment))
-    let phys_shape = space.addShape(newCircleShape(phys_body, 16.0, vzero))
+    result.phys_body = space.addBody(newBody(mass, moment))
+    result.phys_shape = space.addShape(newBoxShape(result.phys_body, 31.0, 31.0, 0.0))
+    result.user_data = make_enemy_userdata(addr result)
+    result.phys_shape.userData = addr result.user_data
+    result.phys_shape.friction = 0.8
 
-    phys_body.position = v(pos.x, pos.y)
+    result.phys_body.position = v(pos.x, pos.y)
 
-    return Enemy(kind: ekRockman, sprite: sprite, phys_body: phys_body, phys_shape: phys_shape)
+    result.kind = ekRockman
 
-proc update*(this: var Enemy) =
-    # Note that sprites are placed by their top-left corner, so:
-    this.sprite.position = vec2f(this.phys_body.position.x - 8.0, this.phys_body.position.y - 8.0)
+proc update*(this: var Enemy, player: Player) =
+    this.sprite.center_position = vec2f(this.phys_body.position.x, this.phys_body.position.y)
     this.sprite.animate(dt)
+
+    if this.kind == ekRockman:
+        # Simple moving towards player behaviour, with random retreats
+        if this.retreat:
+            this.retreat_timer -= dt * 4.0
+            if this.retreat_timer < 0.0:
+                this.retreat = false
+                this.retreat_goal = rand(10.0)
+        else:
+            this.retreat_timer += dt
+            if this.retreat_timer > this.retreat_goal:
+                this.retreat = true
+
+        var player_dir = this.sprite.position - player.sprite.position
+        let player_dist = length(player_dir)
+        player_dir /= player_dist
+        if player_dist < 300.0:
+            if this.retreat:
+                this.phys_body.velocity = v(player_dir.x * 80.0, this.phys_body.velocity.y)
+            else:
+                this.phys_body.velocity = v(-player_dir.x * 60.0, this.phys_body.velocity.y)
+
 
 proc draw*(this: var Enemy) = 
     renderer.draw(this.sprite)

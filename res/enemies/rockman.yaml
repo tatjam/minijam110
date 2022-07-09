@@ -1,5 +1,6 @@
 sprite: res/enemies/rockman.png
 fx_sprite: res/enemies/rockman_emit.png
+scale_origin: [16.0, 16.0]
 animations:
 -   name: "idle"
     loop: true

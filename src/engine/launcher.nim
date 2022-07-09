@@ -12,7 +12,7 @@ glfwWindowHint(GLFWOpenglForwardCompat, GLFW_TRUE) # Used for Mac
 glfwWindowHint(GLFWOpenglProfile, GLFW_OPENGL_CORE_PROFILE)
 glfwWindowHint(GLFWResizable, GLFW_FALSE)
 
-let glfw_window*: GLFWWindow = glfwCreateWindow(1280, 768, "Minijam 110")
+glfw_window = glfwCreateWindow(1280, 768, "Minijam 110")
 if glfw_window == nil:
     quit(-1)
     
@@ -48,6 +48,9 @@ proc launch_game*() =
         glfw_window.swapBuffers()
         var new_time = glfwGetTime()
         dt = new_time - last_time
+        if dt > 0.1:
+            echo "Limiting delta-time!"
+            dt = 0.1
         last_time = new_time
 
     if quit_fnc != nil: quit_fnc()

@@ -1,18 +1,42 @@
 sprite: res/player/player.png
 fx_sprite: res/player/player_emit.png
+scale_origin: [19.0, 40.0]
 animations:
 -   name: "idle"
     loop: true
     frames:
-        -   clip: [0, 0, 40, 76]
+        -   clip: [0, 0, 70, 76]
             duration: 0.2
-        -   clip: [40, 0, 40, 76]
+        -   clip: [70, 0, 70, 76]
             duration: 0.2
-        -   clip: [80, 0, 40, 76]
+        -   clip: [140, 0, 70, 76]
             duration: 0.2
-        -   clip: [120, 0, 40, 76]
+        -   clip: [210, 0, 70, 76]
             duration: 0.2
-        -   clip: [80, 0, 40, 76]
+        -   clip: [140, 0, 70, 76]
             duration: 0.2
-        -   clip: [40, 0, 40, 76]
+        -   clip: [70, 0, 70, 76]
+            duration: 0.2
+-   name: "walk"
+    loop: true
+    frames:
+        -   clip: [0, 76, 70, 76]
+            duration: 0.2
+        -   clip: [70, 76, 70, 76]
+            duration: 0.2
+        -   clip: [140, 76, 70, 76]
+            duration: 0.2
+        -   clip: [70, 76, 70, 76]
+            duration: 0.2
+-   name: "push"
+    loop: true
+    frames:
+        -   clip: [0, 152, 70, 76]
+            duration: 0.2
+        -   clip: [70, 152, 70, 76]
+            duration: 0.2
+-   name: "fall"
+    loop: true
+    frames:
+        -   clip: [210, 76, 70, 76]
             duration: 0.2

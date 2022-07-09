@@ -24,17 +24,11 @@ areas:
     color: [0, 0, 255]
 
 points:
--   name: tree1
-    color: [200, 0, 255]
+-   name: rock
+    color: [140, 140, 200]
 
--   name: tree2
-    color: [255, 0, 255]
+-   name: player
+    color: [100, 255, 50]
 
--   name: log_spawn
-    color: [0, 255, 150]
-
--   name: box_spawn
-    color: [0, 255, 200]
-
--   name: player_spawn
-    color: [255, 0, 0]
+-   name: rockman
+    color: [255, 100, 50]

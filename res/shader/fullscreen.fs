@@ -89,7 +89,9 @@ void main()
     coord = vec2(vTex.x, 1.0-vTex.y);
     
     float n = cnoise(vec3(vTex.x * 80.0, vTex.y * 160.0, t * 0.5));
-    vec2 off = (vec2(n, n) * 2.0 - 1.0) * 0.0025;
+    vec2 dist = vec2(0.5, 0.5) - vTex;
+    float fac = dot(dist, dist);
+    vec2 off = (vec2(n, n) * 2.0 - 1.0) * 0.015 * fac;
     
     vec2 fxcoord = coord + off;
 

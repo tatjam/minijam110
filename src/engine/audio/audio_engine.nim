@@ -32,3 +32,18 @@ proc play_sound*(sound: WavHandle, loop: bool = false): AudioHandle =
     let handle = Soloud_play(soloud, sound.wave)
     Soloud_setLooping(soloud, handle, loop.int32)
     return cast[AudioHandle](handle)
+
+proc pause*(sound: AudioHandle) =
+    Soloud_setPause(soloud, cast[cuint](sound), 1)
+
+proc resume*(sound: AudioHandle) =
+    Soloud_setPause(soloud, cast[cuint](sound), 0)
+
+proc set_volume*(sound: AudioHandle, vol: float) = 
+    let clipvol = max(min(vol, 1.0), 0.0)
+    Soloud_setVolume(soloud, cast[cuint](sound), clipvol)
+
+proc create_sound*(sound: WavHandle, loop: bool = false): AudioHandle = 
+    let handle = play_sound(sound, loop)
+    handle.pause()
+    return handle

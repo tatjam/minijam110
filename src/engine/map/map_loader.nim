@@ -83,7 +83,7 @@ proc create_map_drawer*(map: Table[string, seq[Tile]]): MapDrawer =
 type Map* = ref object
     drawer*: MapDrawer
     # We must keep the segments
-    segments: seq[SegmentShape]
+    segments*: seq[SegmentShape]
     points*: Table[string, seq[Vec2f]]
 
 proc hash(x: Vec3i): Hash =
@@ -264,8 +264,8 @@ proc marching_squares(tile: Image, scale: int, tile_info: Table[Vec3i, TileData]
             let tex_x = (x - bounds.x) * scale
             let tex_y = (y - bounds.y) * scale
             # For colliders:
-            let tx = x.toFloat
-            let ty = y.toFloat
+            let tx = x.toFloat + 0.5
+            let ty = y.toFloat + 0.5
 
             let tl = not is_pixel_white(tile, x - 1, y - 1)
             let tr = not is_pixel_white(tile, x, y - 1)
@@ -323,12 +323,12 @@ proc marching_squares(tile: Image, scale: int, tile_info: Table[Vec3i, TileData]
                 v1 = v(v1.x * scale.toFloat, v1.y * scale.toFloat)
                 v2 = v(v2.x * scale.toFloat, v2.y * scale.toFloat)
                 v3 = v(v3.x * scale.toFloat, v3.y * scale.toFloat)
-                var segment = newSegmentShape(space.staticBody, v0, v1, 3)
+                var segment = newSegmentShape(space.staticBody, v0, v1, 1)
                 segments.add(segment)
                 discard space.addShape(segments[^1])
                 if has_two:
-                    let segment2 = newSegmentShape(space.staticBody, v2, v3, 3)
-                    segments.add(segment2)
+                    let segment2 = newSegmentShape(space.staticBody, v2, v3, 1)
+                    segments.add(segment)
                     discard space.addShape(segments[^1])
 
 
@@ -527,6 +527,7 @@ proc load_map*(map: string, scale: int, space: Space): Map =
             tiles.add(marching_squares(image, scale, tile_textures, space, segments))
         ground_tiles[class] = tiles
 
+
     # Load points
     var points: Table[string, seq[Vec2f]]
     for point in map_info.points:
@@ -539,8 +540,9 @@ proc load_map*(map: string, scale: int, space: Space): Map =
                     if image.get_pixel(vec2i(x.int32, y.int32)) == color:
                         let pf = vec2f((x * scale).toFloat, (y * scale).toFloat)
                         points[point.name].add(pf)
+
     let drawer = create_map_drawer(ground_tiles)
-    return Map(drawer: drawer, segments: segments)
+    return Map(drawer: drawer, segments: segments, points: points)
 
 
 

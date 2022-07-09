@@ -11,11 +11,9 @@ type Level1Scene* = ref object of Scene
 method init(this: Level1Scene) =
     echo "Init!"
     this.music = load_sound("res/level1/music.mp3")
-    #discard play_sound(this.music, true)
+    discard play_sound(this.music, true)
     
-    this.level.init("res/level1/map.yaml", 8)
-    renderer.camera.scale = 1.0
-    renderer.camera.center = vec2f(0 * 8.0, 15 * 8.0)
+    this.level.init("res/level1/map.yaml", 20)
 
 
 method update(this: Level1Scene) =
