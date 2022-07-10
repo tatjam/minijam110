@@ -14,23 +14,25 @@ const BARRIER_COLL = 42
 type Barrier* = ref object 
     health: float
     hurt_wav: WavHandle
+    break_wav: WavHandle
     sprites*: seq[AnimatedSprite]
     broken*: bool
-    phys_shape: Shape
+    phys_shape*: Shape
+    phys_space: Space
     user_data*: UserData
     # via physical impact at speed
     enemies_damage: bool
     objects_damage: bool
     min_energy: float
 
-proc hurt(this: Barrier, energy: float) =
-    echo "Was hurt"
+proc hurt(this: var Barrier, energy: float) =
+    discard this.hurt_wav.play_sound()
+    this.health -= (energy - this.min_energy) / 300000.0
+    echo this.health
 
-proc on_collide(this: Barrier, other: BodyKind, energy: float) =
+proc on_collide*(this: var Barrier, other: BodyKind, energy: float) =
     if (other == bkEnemy and this.enemies_damage) or
         (other == bkObject and this.objects_damage): 
-        if energy > 0:
-            echo "Collide with energy: " & $energy
         if energy > this.min_energy:
             this.hurt(energy)
 
@@ -74,7 +76,7 @@ proc create_barrier(sprite: string, area: Vec4f, size: int, space: Space, id: in
         
     # The collider is a simple static segment
     let hs = size.toFloat * 0.5
-    result.phys_shape = newSegmentShape(space.staticBody, v(area.x + hs, area.y + hs), v(area.z + hs, area.w + hs), 1)
+    result.phys_shape = newSegmentShape(space.staticBody, v(area.x + hs, area.y + hs), v(area.z + hs, area.w + hs), 8)
     result.user_data = make_barrier_userdata(id)
     result.phys_shape.userData = addr result.user_data
     # We sign up for collision callbacks between everything and barriers
@@ -85,16 +87,27 @@ proc create_barrier(sprite: string, area: Vec4f, size: int, space: Space, id: in
     handler.postSolveFunc = barrier_handler
     handler.userData = barriers
 
+    result.phys_space = space
+
     discard space.addShape(result.phys_shape)
 
 proc create_wooden_barrier*(area: Vec4f, size: int, space: Space, id: int, barriers: ptr seq[Barrier]): Barrier =
     result = create_barrier("res/level1/break_wood.yaml", area, size, space, id, barriers)
     result.health = 10.0
-    result.min_energy = 1.0
+    result.min_energy = 1000000.0
+    result.enemies_damage = true
+    result.objects_damage = true
+    result.hurt_wav = load_sound("res/barrier/wood_hurt.mp3")
+    result.break_wav = load_sound("res/barrier/wood_break.mp3")
 
 proc update*(this: var Barrier) =
     for sprite in mitems(this.sprites):
         sprite.animate(dt)
+    if this.health < 0.0:
+        discard this.break_wav.play_sound()
+        this.phys_space.removeShape(this.phys_shape)
+        this.broken = true
+
 
 proc draw*(this: var Barrier) =
     for sprite in this.sprites:

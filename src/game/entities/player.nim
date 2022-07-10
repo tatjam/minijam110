@@ -1,14 +1,15 @@
 include ../../engine/base
 import nimgl/glfw
 import ../userdata
+import random
 
 
 type Player* = ref object
     sprite*: AnimatedSprite
     lantern*: Sprite
     
-    phys_body: Body
-    phys_shape: Shape
+    phys_body*: Body
+    phys_shape*: Shape
     phys_space: Space
 
     last_jump: bool
@@ -89,8 +90,9 @@ proc query_hit(sh: Shape, p: Vect, n: Vect, a: Float, data: pointer) {.cdecl.} =
         if udata.kind == bkEnemy:
             let enemy_idx = udata.point
             var datac = cast[ptr ToHitData](data)
-            datac[].hit = true
-            hurt(datac[].enemies[enemy_idx], p)
+            if not datac[].enemies[enemy_idx].dead:
+                datac[].hit = true
+                hurt(datac[].enemies[enemy_idx], p)
 
 
 proc hit(this: Player, enemies: seq[Enemy]): bool =
@@ -114,6 +116,7 @@ type ToTossData = object
     enemies: seq[Enemy]
     objects: seq[PhysicalObject]
     force: Vect
+    tossed: seq[pointer]
 
 proc query_toss(sh: Shape, p: Vect, n: Vect, a: Float, data: pointer) {.cdecl.} =
     # There's this weird 38 user data that we must ignore
@@ -121,21 +124,31 @@ proc query_toss(sh: Shape, p: Vect, n: Vect, a: Float, data: pointer) {.cdecl.} 
     var datac = cast[ptr ToTossData](data)
     if cast[int](sh.userData) > 100000:
         let udata = cast[ptr UserData](sh.userData)[]
+        if datac[].tossed.contains(cast[pointer](udata)):
+            return
         if udata.kind == bkEnemy:
             let enemy_idx = udata.point
-            body = datac[].enemies[enemy_idx].phys_body
-            datac[].enemies[enemy_idx].toss()
+            let enemy = datac[].enemies[enemy_idx]
+            if enemy.is_tossable() and not enemy.dead:
+                body = enemy.phys_body
+                datac[].enemies[enemy_idx].toss()
+                datac[].tossed.add(cast[pointer](udata))
         elif udata.kind == bkObject:
             let object_idx = udata.point
-            body = datac[].objects[object_idx].phys_body
+            if datac[].objects[object_idx].is_tossable():
+                body = datac[].objects[object_idx].phys_body
+                datac[].tossed.add(cast[pointer](udata))
 
     if body != nil:
-        let fp = body.position
-        body.applyImpulseAtWorldPoint(fp, datac[].force)
+        var cm = body.centerOfGravity
+        var fp = body.localToWorld(cm)
+        fp = v(fp.x + rand(10.0), fp.y + rand(10.0))
+        body.applyImpulseAtWorldPoint(datac[].force, fp)
 
 proc toss(this: Player, enemies: seq[Enemy], objects: seq[PhysicalObject]) =
     let rays = this.phys_body.position + v(0.0, 0.0)
-    var raye = this.phys_body.position + v(34.0, 23.0)
+    var raye = this.phys_body.position + v(48.0, 23.0)
+    var raye2 = this.phys_body.position + v(48.0, 0.0)
     if this.sprite.scale.x < 0.0:
         raye = this.phys_body.position + v(-34.0, 23.0)
 
@@ -161,16 +174,20 @@ proc toss(this: Player, enemies: seq[Enemy], objects: seq[PhysicalObject]) =
         return
 
     # Direction
-    var ver = 0.5 * sin(PI * toss_prog)
+    var ver = 1.0 * (sin(PI * toss_prog) + 0.2)
     if this.sprite.scale.x < 0.0:
         query_data.force = v(-1.0, -ver)
     else:
         query_data.force = v(1.0, -ver)
+    let len = query_data.force.vlength
+    query_data.force = v(query_data.force.x / len, query_data.force.y / len)
     
-    var force = 300.0 * (cos(PI * 0.5 * toss_prog - PI * 0.5) + 0.3)
+    var force = 7000.0 * (cos(PI * 0.5 * toss_prog - PI * 0.5) + 0.3)
     query_data.force = v(query_data.force.x * force, query_data.force.y * force)
     
-    segmentQuery(this.phys_space, rays, raye, Float(4.0), filter, query_toss, addr query_data)
+    # We do two querys
+    segmentQuery(this.phys_space, rays, raye, Float(14.0), filter, query_toss, addr query_data)
+    segmentQuery(this.phys_space, rays, raye2, Float(14.0), filter, query_toss, addr query_data)
 
 proc update*(this: var Player, enemies: seq[Enemy], objects: seq[PhysicalObject]) =
     # Ground check
@@ -233,11 +250,11 @@ proc update*(this: var Player, enemies: seq[Enemy], objects: seq[PhysicalObject]
     else:
         var lateral = false
         if glfw_window.getKey(GLFWKey.A) == GLFW_PRESS:
-            this.phys_body.position = this.phys_body.position + v(-dt * 100.0, 0.0)
+            this.phys_body.position = this.phys_body.position + v(-dt * 120.0, 0.0)
             this.sprite.scale = vec2f(-1.0, 1.0)
             lateral = true
         if glfw_window.getKey(GLFWKey.D) == GLFW_PRESS:
-            this.phys_body.position = this.phys_body.position + v(dt * 100.0, 0.0)
+            this.phys_body.position = this.phys_body.position + v(dt * 120.0, 0.0)
             this.sprite.scale = vec2f(1.0, 1.0)
             lateral = true
         if glfw_window.getKey(GLFWKey.V) == GLFW_PRESS:

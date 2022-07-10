@@ -22,7 +22,7 @@ type
         hurt_wav: WavHandle
         sprite*: AnimatedSprite
         phys_body*: Body
-        phys_shape: Shape
+        phys_shape*: Shape
         user_data*: UserData
         toss_timer: float
 
@@ -46,10 +46,14 @@ proc create_rockman*(pos: Vec2f, space: Space, id: int): Enemy =
 
 
 proc die(this: var Enemy, objects: var seq[PhysicalObject], space: Space) = 
+    let pos = this.phys_body.position
+    let vpos = vec2f(pos.x, pos.y)
     space.removeShape(this.phys_shape)
     space.removeBody(this.phys_body)
     this.dead = true
-    discard
+    if this.kind == ekRockman:
+        # Spawn a dead rockman
+        objects.add(create_deadrockman(vpos, space, objects.len))
 
 proc update*(this: var Enemy, player: Player, objects: var seq[PhysicalObject], space: Space) =
     this.sprite.center_position = vec2f(this.phys_body.position.x, this.phys_body.position.y)
@@ -59,6 +63,7 @@ proc update*(this: var Enemy, player: Player, objects: var seq[PhysicalObject], 
         this.die(objects, space)
 
     if this.toss_timer < 0.0:
+        this.phys_body.angle = 0.0
         if this.kind == ekRockman:
             # Simple moving towards player behaviour, with random retreats
             if this.retreat:
@@ -82,6 +87,7 @@ proc update*(this: var Enemy, player: Player, objects: var seq[PhysicalObject], 
     else:
         this.toss_timer -= dt
 
+    this.sprite.rotation = this.phys_body.angle
 
 proc hurt*(this: var Enemy, point: Vect) =
     this.health -= 1.0
@@ -92,6 +98,9 @@ proc hurt*(this: var Enemy, point: Vect) =
 # Enemies are knocked by default
 proc toss*(this: var Enemy) =
     this.toss_timer = 2.0
+
+proc is_tossable*(this: Enemy): bool =
+    return true
 
 proc draw*(this: var Enemy) = 
     renderer.draw(this.sprite)
