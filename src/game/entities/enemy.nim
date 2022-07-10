@@ -21,9 +21,10 @@ type
         health: float
         hurt_wav: WavHandle
         sprite*: AnimatedSprite
-        phys_body: Body
+        phys_body*: Body
         phys_shape: Shape
         user_data*: UserData
+        toss_timer: float
 
 proc create_rockman*(pos: Vec2f, space: Space, id: int): Enemy = 
     result = new(Enemy)
@@ -57,26 +58,29 @@ proc update*(this: var Enemy, player: Player, objects: var seq[PhysicalObject], 
     if this.health <= 0.0:
         this.die(objects, space)
 
-    if this.kind == ekRockman:
-        # Simple moving towards player behaviour, with random retreats
-        if this.retreat:
-            this.retreat_timer -= dt * 4.0
-            if this.retreat_timer < 0.0:
-                this.retreat = false
-                this.retreat_goal = rand(10.0)
-        else:
-            this.retreat_timer += dt
-            if this.retreat_timer > this.retreat_goal:
-                this.retreat = true
-
-        var player_dir = this.sprite.position - player.sprite.position
-        let player_dist = length(player_dir)
-        player_dir /= player_dist
-        if player_dist < 300.0:
+    if this.toss_timer < 0.0:
+        if this.kind == ekRockman:
+            # Simple moving towards player behaviour, with random retreats
             if this.retreat:
-                this.phys_body.velocity = v(player_dir.x * 70.0, this.phys_body.velocity.y)
+                this.retreat_timer -= dt * 4.0
+                if this.retreat_timer < 0.0:
+                    this.retreat = false
+                    this.retreat_goal = rand(10.0)
             else:
-                this.phys_body.velocity = v(-player_dir.x * 60.0, this.phys_body.velocity.y)
+                this.retreat_timer += dt
+                if this.retreat_timer > this.retreat_goal:
+                    this.retreat = true
+
+            var player_dir = this.sprite.position - player.sprite.position
+            let player_dist = length(player_dir)
+            player_dir /= player_dist
+            if player_dist < 300.0:
+                if this.retreat:
+                    this.phys_body.velocity = v(player_dir.x * 70.0, this.phys_body.velocity.y)
+                else:
+                    this.phys_body.velocity = v(-player_dir.x * 60.0, this.phys_body.velocity.y)
+    else:
+        this.toss_timer -= dt
 
 
 proc hurt*(this: var Enemy, point: Vect) =
@@ -84,6 +88,10 @@ proc hurt*(this: var Enemy, point: Vect) =
     let p = this.phys_body.position
     this.phys_body.applyImpulseAtWorldPoint(v(0, -5000.0), p)
     discard this.hurt_wav.play_sound()
+
+# Enemies are knocked by default
+proc toss*(this: var Enemy) =
+    this.toss_timer = 2.0
 
 proc draw*(this: var Enemy) = 
     renderer.draw(this.sprite)

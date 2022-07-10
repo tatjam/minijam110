@@ -110,8 +110,67 @@ proc hit(this: Player, enemies: seq[Enemy]): bool =
 
     return query_data.hit
 
+type ToTossData = object
+    enemies: seq[Enemy]
+    objects: seq[PhysicalObject]
+    force: Vect
+
+proc query_toss(sh: Shape, p: Vect, n: Vect, a: Float, data: pointer) {.cdecl.} =
+    # There's this weird 38 user data that we must ignore
+    var body: Body = nil
+    var datac = cast[ptr ToTossData](data)
+    if cast[int](sh.userData) > 100000:
+        let udata = cast[ptr UserData](sh.userData)[]
+        if udata.kind == bkEnemy:
+            let enemy_idx = udata.point
+            body = datac[].enemies[enemy_idx].phys_body
+            datac[].enemies[enemy_idx].toss()
+        elif udata.kind == bkObject:
+            let object_idx = udata.point
+            body = datac[].objects[object_idx].phys_body
+
+    if body != nil:
+        let fp = body.position
+        body.applyImpulseAtWorldPoint(fp, datac[].force)
+
 proc toss(this: Player, enemies: seq[Enemy], objects: seq[PhysicalObject]) =
-    discard
+    let rays = this.phys_body.position + v(0.0, 0.0)
+    var raye = this.phys_body.position + v(34.0, 23.0)
+    if this.sprite.scale.x < 0.0:
+        raye = this.phys_body.position + v(-34.0, 23.0)
+
+    let filter = chipmunk.ShapeFilter(
+        group:nil,
+        categories: 0b1111,
+        mask: 0b1111
+    )
+    var query_data: ToTossData
+    query_data.enemies = enemies
+    query_data.objects = objects
+
+    # Toss timer goes from 0.0 to 1.8
+    # from 0.0 to 0.4 we do nothing
+    # from 0.4 to 1.2 linear rampup (0.8 size)
+    # from 1.2 to 1.8 capped
+    var toss_prog = 0.0
+    if this.attack_timer > 0.4:
+        toss_prog = (this.attack_timer - 0.4) / 0.8
+    toss_prog = min(toss_prog, 1.0)
+
+    if toss_prog == 0.0:
+        return
+
+    # Direction
+    var ver = 0.5 * sin(PI * toss_prog)
+    if this.sprite.scale.x < 0.0:
+        query_data.force = v(-1.0, -ver)
+    else:
+        query_data.force = v(1.0, -ver)
+    
+    var force = 300.0 * (cos(PI * 0.5 * toss_prog - PI * 0.5) + 0.3)
+    query_data.force = v(query_data.force.x * force, query_data.force.y * force)
+    
+    segmentQuery(this.phys_space, rays, raye, Float(4.0), filter, query_toss, addr query_data)
 
 proc update*(this: var Player, enemies: seq[Enemy], objects: seq[PhysicalObject]) =
     # Ground check

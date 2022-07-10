@@ -13,7 +13,7 @@ type
     PhysicalObject* = ref object 
         kind: ObjectKind
         sprite*: AnimatedSprite
-        phys_body: Body
+        phys_body*: Body
         phys_shape: Shape
         user_data: UserData
 
