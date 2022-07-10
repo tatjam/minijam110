@@ -16,6 +16,7 @@ type Sprite* = ref object
     texture_width*, texture_height*: int
     # In UV coordinates
     clip*: Vec4f
+    clear_fx*: bool
     # Tint color
     tint*: Vec4f
     flip_h*, flip_v*: bool
@@ -31,7 +32,8 @@ type Sprite* = ref object
 proc create_sprite*(image: GLuint, fx_image: GLuint, width: int, height: int): Sprite =
     return Sprite(texture_id: image, fx_texture_id: fx_image, texture_width: width, texture_height: height,
         clip: vec4f(0, 0, 1, 1),  tint: vec4f(1.0, 1.0, 1.0, 1.0),
-        shader: load_shader("res/shader/sprite"), scale: vec2f(1.0, 1.0))
+        shader: load_shader("res/shader/sprite"), scale: vec2f(1.0, 1.0),
+        clear_fx: true)
 
 proc create_sprite*(image: string): Sprite = 
     var width, height, nCh : int
@@ -73,8 +75,8 @@ proc create_fx_sprite*(image: string): Sprite =
 
 proc create_sprite*(image: string, fx_image: string): Sprite = 
     var width, height, nCh, fxwidth, fxheight : int
-    var data = stbi.load(image, width, height, nCh, 0)
-    var fxdata = stbi.load(fx_image, fxwidth, fxheight, nCh, 0)
+    var data = stbi.load(image, width, height, nCh, 4)
+    var fxdata = stbi.load(fx_image, fxwidth, fxheight, nCh, 4)
     assert fxwidth == width and fxheight == height
 
     var tex, fxtex: Gluint
@@ -124,19 +126,21 @@ proc do_draw*(sprite: Sprite) =
         .rotate(sprite.rotation, 0, 0, 1)
         .translate(-sprite.scale_origin.x, -sprite.scale_origin.y, 0.0)
     sprite.shader.set_mat4("sprite_tform", stform)
-
-    if sprite.fx_texture_id != 0:
-        glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, sprite.fx_texture_id)
-        sprite.shader.set_int("has_fx", 1)
-        glDepthMask(false)
-        draw_rectangle()
+    sprite.shader.set_int("clear_fx", 
+        if (sprite.texture_id != 0) and sprite.clear_fx: 1 else: 0)
     
     if sprite.texture_id != 0:
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_2D, sprite.texture_id)
         sprite.shader.set_int("has_fx", 0)
         glDepthMask(true)
+        draw_rectangle()
+    
+    if sprite.fx_texture_id != 0:
+        glActiveTexture(GL_TEXTURE0)
+        glBindTexture(GL_TEXTURE_2D, sprite.fx_texture_id)
+        sprite.shader.set_int("has_fx", 1)
+        glDepthMask(false)
         draw_rectangle()
 
 

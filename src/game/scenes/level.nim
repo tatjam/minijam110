@@ -7,8 +7,10 @@ import ../entities/door
 import ../../engine/map/map_loader
 import ../entities/physical_object
 import ../../engine/globals
+import ../../engine/audio/audio_engine
 import ../../engine/graphics/sprite
 import ../../engine/graphics/shader
+import ../../engine/base/renderer as rnd
 import ../userdata
 
 import nimgl/glfw
@@ -26,12 +28,24 @@ type Level* = ref object
     physical_objects*: seq[PhysicalObject]
     barriers*: seq[Barrier]
     enemies: seq[Enemy]
+    # Must be manually created
+    platforms*: seq[Platform]
     doors: seq[Door]
+    backdrop: Sprite
+    deco: seq[AnimatedSprite]
+    kill: seq[Vec4f]
+
+    die_timer: float
+    die_sprite: Sprite
+    die_sound: WavHandle
+    # Buttons have a preset ammount of buttons
+    buttons_idx*: array[4, int]
 
 
 
 proc init_no_map(this: var Level, scale: int) = 
     this.player = create_player(this.map.points["player"][0], this.physics_space)
+    this.die_timer = -1.0
 
     # Create all types of enemies / objects
     if this.map.points.hasKey("rockman"):
@@ -45,16 +59,46 @@ proc init_no_map(this: var Level, scale: int) =
     if this.map.points.hasKey("magmarock"):
         for point in this.map.points["magmarock"]:
             this.physical_objects.add(create_magmarock(point, this.physics_space, this.physical_objects.len))
+    
+    if this.map.points.hasKey("box"):
+        for point in this.map.points["box"]:
+            this.physical_objects.add(create_box(point, this.physics_space, this.physical_objects.len))
+    
+    for i in countup(0, this.buttons_idx.len - 1):
+        this.buttons_idx[i] = -1
+        let str = "button" & $i
+        if this.map.points.hasKey(str) and this.map.points[str].len == 1:
+            let point = this.map.points[str][0]
+            this.physical_objects.add(create_button(point, this.physics_space, this.physical_objects.len, 
+                addr this.physical_objects))
+            this.buttons_idx[0] = this.physical_objects.len - 1
+
 
     # Load barriers
     if this.map.areas.hasKey("break_wood"):
         for area in this.map.areas["break_wood"]:
             this.barriers.add(create_wooden_barrier(area, scale, this.physics_space, this.barriers.len, addr this.barriers))
     
+    if this.map.areas.hasKey("gate"):
+        for area in this.map.areas["gate"]:
+            this.barriers.add(create_gate(area, scale, this.physics_space, this.barriers.len, addr this.barriers))
+    
+    # Kill zones
+    if this.map.areas.hasKey("kill"):
+        for area in this.map.areas["kill"]:
+            this.kill.add(area)
+    
     # Load doors
     if this.map.points.hasKey("door"):
         for point in this.map.points["door"]:
             this.doors.add(create_door(point))
+
+    # Load deco
+    if this.map.points.hasKey("light1l"):
+        for point in this.map.points["light1l"]:
+            var sprite = create_animated_sprite("res/deco/light1.yaml")
+            sprite.position = vec2f(point.x - 10.0, point.y)
+            this.deco.add(sprite)
 
 # Removes all physical objects EXCEPT the world, and reinits
 proc restart(this: var Level) =
@@ -79,7 +123,12 @@ proc restart(this: var Level) =
     this.init_no_map(this.scale)
 
 
-proc init*(this: var Level, map: string, scale: int) = 
+proc die(this: var Level) =
+    if this.die_timer < 0.0:
+        discard this.die_sound.play_sound()
+        this.die_timer = 2.0
+
+proc init*(this: var Level, map: string, backdrop: string, backdrop_fx: string, scale: int) = 
     this = new(Level)
     this.scale = scale
     renderer.fullscreen_shader = load_shader("res/shader/fullscreen")
@@ -95,9 +144,16 @@ proc init*(this: var Level, map: string, scale: int) =
         ##segment.userData = addr this.terr_udata
         segment.friction = 0.5
     
+    if backdrop_fx != "none":
+        this.backdrop = create_sprite(backdrop, backdrop_fx)
+    else:
+        this.backdrop = create_sprite(backdrop)
+    this.die_sprite = create_sprite("res/perish.png", "res/perish.png")
+    this.die_sound = load_sound("res/perish.mp3")
+    
     init_no_map(this, this.scale)
 
-proc update*(this: var Level) = 
+proc update*(this: var Level): bool = 
     # we do multiple substeps to prevent pass-through
     # TODO: Tune this
     const steps = 4
@@ -119,29 +175,70 @@ proc update*(this: var Level) =
         exit = exit or door.update(this.player)
 
     if exit:
-        quit(1)
+        return true
 
     renderer.camera.center = this.player.sprite.position
     renderer.camera.scale = 1.0
 
     if glfw_window.getKey(GLFWKey.R) == GLFW_PRESS:
         this.restart()
+    
+    let screens = vec2f(
+        this.backdrop.texture_width.toFloat / 640,
+        this.backdrop.texture_height.toFloat / 384
+    )
+
+    let screenp = vec2f(
+        ((renderer.camera.center.x / this.map.size.x) * screens.x - 0.5) * 2.0,
+        ((renderer.camera.center.y / this.map.size.y) * screens.y - 0.5) * 2.0
+    )
+
+    let offset = vec2f(
+        renderer.camera.center.x - 640 * 0.25 * screenp.x,
+        renderer.camera.center.y - 384 * 0.25 * screenp.y
+    )
+
+
+    this.backdrop.center_position = offset
+
+    # Check die areas
+    for area in this.kill:
+        let pos = this.player.sprite.position
+        if pos.x > area.x and pos.y > area.y and pos.x < area.x + area.z and pos.y < area.y + area.w:
+            this.die()
+    
+    if this.die_timer > 0.0:
+        this.die_timer -= dt
+        if this.die_timer < 0.0:
+            this.restart()
+
+    return false
 
 proc draw*(this: var Level) = 
-    this.map.drawer.draw_tiles()
+    if this.die_timer > 0.0:
+        this.die_sprite.center_position = renderer.camera.center
+        renderer.draw(this.die_sprite)
+    else:
 
-    for enemy in mitems(this.enemies):
-        if not enemy.dead:
-            enemy.draw()
-    for phys_obj in mitems(this.physical_objects):
-        phys_obj.draw()
+        renderer.draw(this.backdrop)
 
-    for barrier in mitems(this.barriers):
-        if not barrier.broken:
-            barrier.draw()
-    this.player.draw()
+        this.map.drawer.draw_tiles()
+        
+        for deco in this.deco:
+            renderer.draw(deco)
 
-    for door in this.doors:
-        door.draw()
+        for enemy in mitems(this.enemies):
+            if not enemy.dead:
+                enemy.draw()
+        for phys_obj in mitems(this.physical_objects):
+            phys_obj.draw()
+
+        for barrier in mitems(this.barriers):
+            if not barrier.broken:
+                barrier.draw()
+        this.player.draw()
+
+        for door in this.doors:
+            door.draw()
 
 

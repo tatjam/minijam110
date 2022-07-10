@@ -12,7 +12,7 @@ import ../userdata
 const BARRIER_COLL = 42
 
 type Barrier* = ref object 
-    health: float
+    health*: float
     hurt_wav: WavHandle
     break_wav: WavHandle
     sprites*: seq[AnimatedSprite]
@@ -100,10 +100,19 @@ proc create_wooden_barrier*(area: Vec4f, size: int, space: Space, id: int, barri
     result.hurt_wav = load_sound("res/barrier/wood_hurt.mp3")
     result.break_wav = load_sound("res/barrier/wood_break.mp3")
 
+proc create_gate*(area: Vec4f, size: int, space: Space, id: int, barriers: ptr seq[Barrier]): Barrier =
+    result = create_barrier("res/barrier/gate.yaml", area, size, space, id, barriers)
+    result.health = 10.0
+    result.min_energy = 1000000000.0
+    result.enemies_damage = false
+    result.objects_damage = false
+    result.hurt_wav = load_sound("res/barrier/wood_hurt.mp3")
+    result.break_wav = load_sound("res/barrier/gate.mp3")
+
 proc update*(this: var Barrier) =
     for sprite in mitems(this.sprites):
         sprite.animate(dt)
-    if this.health < 0.0:
+    if this.health <= 0.0:
         discard this.break_wav.play_sound()
         this.phys_space.removeShape(this.phys_shape)
         this.broken = true

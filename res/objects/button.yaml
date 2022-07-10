@@ -1,0 +1,14 @@
+sprite: res/objects/button.png
+fx_sprite: res/objects/button_emit.png
+scale_origin: [20.0, 20.0]
+animations:
+-   name: "off"
+    loop: true
+    frames:
+        -   clip: [0, 0, 40, 40]
+            duration: 1.0
+-   name: "on"
+    loop: true
+    frames:
+        -   clip: [40, 0, 40, 40]
+            duration: 1.0

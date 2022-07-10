@@ -8,6 +8,7 @@ uniform sampler2D tex;
 uniform int has_fx;
 
 uniform vec4 tint;
+uniform int clear_fx;
 
 // Contains (x, y) = lower bound (z, w) = size
 uniform vec4 clip;
@@ -25,6 +26,13 @@ void main()
     else
     {
         color = texture(tex, coord) * tint;
-        effect = vec4(0, 0, 0, 0);
+        if(clear_fx == 1 && color.a != 0)
+        {
+            effect = vec4(0, 0, 0, 1);
+        }
+        else
+        {
+            effect = vec4(0, 0, 0, 0);
+        }
     }
 }

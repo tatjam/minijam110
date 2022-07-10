@@ -1,0 +1,9 @@
+sprite: res/objects/box.png
+fx_sprite: none
+scale_origin: [30.0, 30.0]
+animations:
+-   name: "idle"
+    loop: true
+    frames:
+        -   clip: [0, 0, 60, 60]
+            duration: 1.0

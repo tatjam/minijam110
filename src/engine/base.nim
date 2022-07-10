@@ -3,6 +3,7 @@
 import launcher
 import base/scene_manager
 import graphics/sprite
+import graphics/line
 import graphics/camera
 import globals
 import base/renderer as rnd

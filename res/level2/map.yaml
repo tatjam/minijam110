@@ -1,0 +1,66 @@
+seed: 1234
+
+images:
+-   res/level2/map.png
+-   res/level2/map_ent.png
+
+tiles:
+-   class: ground
+    texture: res/level1/ground.png
+    noise: 1.0
+    color: [0, 0, 0]
+
+-   class: ground
+    texture: res/level1/wood.png
+    noise: 0.0
+    color: [101, 101, 101]
+
+-   class: ground
+    texture: res/level1/sand.png
+    noise: 3.0
+    color: [200, 200, 200]
+
+-   class: B@back 
+    texture: res/level1/back.png
+    noise: 1.0
+    color: [240, 240, 240]
+
+-   class: B@backwood 
+    texture: res/level1/wood_back.png
+    noise: 0.0
+    color: [160, 160, 160]
+
+areas:
+-   name: water
+    color: [0, 0, 255]
+-   name: break_wood
+    color: [0, 255, 150]
+-   name: gate
+    color: [100, 255, 150]
+-   name: kill
+    color: [255, 0, 0]
+
+points:
+-   name: rock
+    color: [140, 140, 200]
+
+-   name: magmarock
+    color: [140, 175, 200]
+
+-   name: box
+    color: [255, 140, 200]
+
+-   name: player
+    color: [100, 255, 50]
+
+-   name: rockman
+    color: [255, 100, 50]
+
+-   name: door
+    color: [0, 51, 255]
+
+-   name: button0
+    color: [255, 0, 255]
+
+-   name: light1l
+    color: [255, 190, 0]

@@ -4,7 +4,8 @@ type
         bkPlayer,
         bkEnemy,
         bkObject,
-        bkBarrier
+        bkBarrier,
+        bkPlatform
 
     UserData* = ref object
         kind*: BodyKind 
@@ -33,4 +34,9 @@ proc make_object_userdata*(obj: int): UserData =
 proc make_barrier_userdata*(obj: int): UserData =
     result = new(UserData)
     result.kind = bkBarrier
+    result.point = obj
+
+proc make_platform_userdata*(obj: int): UserData =
+    result = new(UserData)
+    result.kind = bkPlatform
     result.point = obj

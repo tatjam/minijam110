@@ -1,0 +1,9 @@
+sprite: res/barrier/electric_door.png
+fx_sprite: res/barrier/electric_door_emit.png
+scale_origin: [0.0, 0.0]
+animations:
+-   name: "idle"
+    loop: true
+    frames:
+        -   clip: [0, 0, 20, 20]
+            duration: 1.0

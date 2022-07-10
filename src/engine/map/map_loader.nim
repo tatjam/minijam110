@@ -86,6 +86,7 @@ type Map* = ref object
     points*: Table[string, seq[Vec2f]]
     # Only bounding boxes
     areas*: Table[string, seq[Vec4f]]
+    size*: Vec2f
 
 proc hash(x: Vec3i): Hash =
     return x.x.hash !& x.y.hash !& x.z.hash
@@ -592,7 +593,8 @@ proc load_map*(map: string, scale: int, space: Space): Map =
 
 
     let drawer = create_map_drawer(ground_tiles)
-    return Map(drawer: drawer, segments: segments, points: points, areas: areas)
+    let size = vec2f((images[0].width * scale).toFloat, (images[0].height * scale).toFloat)
+    return Map(drawer: drawer, segments: segments, points: points, areas: areas, size: size)
 
 
 

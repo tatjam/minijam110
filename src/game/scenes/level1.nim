@@ -3,6 +3,7 @@ import ../../engine/map/map_loader
 import ../../engine/graphics/sprite
 import ../entities/player
 import level
+import cutsc1
 
 type Level1Scene* = ref object of Scene
     music: WavHandle
@@ -14,7 +15,7 @@ method init(this: Level1Scene) =
     this.music = load_sound("res/level1/music.mp3")
     discard play_sound(this.music, true)
     
-    this.level.init("res/level1/map.yaml", 20)
+    this.level.init("res/level1/map.yaml", "res/level1/backdrop.png", "none", 20)
     this.tut.add(create_sprite("res/tutorial/tut000.png"))
     this.tut.add(create_sprite("res/tutorial/tut0.png"))
     this.tut.add(create_sprite("res/tutorial/tut00.png"))
@@ -29,10 +30,13 @@ method init(this: Level1Scene) =
     this.tut[4].center_position = vec2f(176 * 20.0, 29 * 20.0)
     this.tut[5].center_position = vec2f(207 * 20.0, 13 * 20.0)
 
+    for tut in mitems(this.tut):
+        tut.clear_fx = false
+
 
 method update(this: Level1Scene) =
-    this.level.update()
-    return
+    if this.level.update():
+        goto_scene(CutScene1)
 method render(this: Level1Scene) = 
     this.level.draw()
     for tut in this.tut:

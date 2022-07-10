@@ -7,6 +7,7 @@ import random
 type Player* = ref object
     sprite*: AnimatedSprite
     lantern*: Sprite
+    ind_line: Line
     
     phys_body*: Body
     phys_shape*: Shape
@@ -22,6 +23,8 @@ type Player* = ref object
     in_attack: bool
     in_toss: bool
     release_toss: bool
+
+    in_drag: bool
 
     step_wav: WavHandle
     fall_wav: WavHandle
@@ -64,6 +67,9 @@ proc create_player*(pos: Vec2f, space: Space): Player =
     result.miss_wav = load_sound("res/player/hit.mp3")
     result.step_sound = create_sound(result.step_wav, true)
     result.fall_sound = create_sound(result.fall_wav, true)
+
+    let points = @[vec2f(0.0, 0.0), vec2f(20.0, 0.0), vec2f(15.0, 5.0), vec2f(15.0, -5.0)]
+    result.ind_line = create_line(points, 4.0)
 
 
 
@@ -145,6 +151,33 @@ proc query_toss(sh: Shape, p: Vect, n: Vect, a: Float, data: pointer) {.cdecl.} 
         fp = v(fp.x + rand(10.0), fp.y + rand(10.0))
         body.applyImpulseAtWorldPoint(datac[].force, fp)
 
+proc get_toss_prog(this: Player): float =
+    # Toss timer goes from 0.0 to 1.8
+    # from 0.0 to 0.4 we do nothing
+    # from 0.4 to 1.2 linear rampup (0.8 size)
+    # from 1.2 to 1.8 capped
+    var toss_prog = 0.0
+    if this.attack_timer > 0.4:
+        toss_prog = (this.attack_timer - 0.4) / 0.8
+    toss_prog = min(toss_prog, 1.0)
+    return toss_prog
+
+proc get_toss_vec(this: Player, toss_prog: float): Vect = 
+    var force = v(0.0, 0.0)
+    var ver = 0.9 * (sin(PI * toss_prog) + 0.3)
+    if this.sprite.scale.x < 0.0:
+        force = v(-1.0, -ver)
+    else:
+        force = v(1.0, -ver)
+    let len = force.vlength
+    force = v(force.x / len, force.y / len)
+
+    return force
+
+proc get_toss_factor(this: Player, toss_prog: float): float = 
+    return (cos(PI * 0.5 * toss_prog - PI * 0.5) + 0.7)
+
+
 proc toss(this: Player, enemies: seq[Enemy], objects: seq[PhysicalObject]) =
     let rays = this.phys_body.position + v(0.0, 0.0)
     var raye = this.phys_body.position + v(48.0, 23.0)
@@ -161,28 +194,15 @@ proc toss(this: Player, enemies: seq[Enemy], objects: seq[PhysicalObject]) =
     query_data.enemies = enemies
     query_data.objects = objects
 
-    # Toss timer goes from 0.0 to 1.8
-    # from 0.0 to 0.4 we do nothing
-    # from 0.4 to 1.2 linear rampup (0.8 size)
-    # from 1.2 to 1.8 capped
-    var toss_prog = 0.0
-    if this.attack_timer > 0.4:
-        toss_prog = (this.attack_timer - 0.4) / 0.8
-    toss_prog = min(toss_prog, 1.0)
+    let toss_prog = this.get_toss_prog()
 
     if toss_prog == 0.0:
         return
 
     # Direction
-    var ver = 1.0 * (sin(PI * toss_prog) + 0.2)
-    if this.sprite.scale.x < 0.0:
-        query_data.force = v(-1.0, -ver)
-    else:
-        query_data.force = v(1.0, -ver)
-    let len = query_data.force.vlength
-    query_data.force = v(query_data.force.x / len, query_data.force.y / len)
+    query_data.force = this.get_toss_vec(toss_prog)
     
-    var force = 7000.0 * (cos(PI * 0.5 * toss_prog - PI * 0.5) + 0.3)
+    let force = 5000.0 * this.get_toss_factor(toss_prog)
     query_data.force = v(query_data.force.x * force, query_data.force.y * force)
     
     # We do two querys
@@ -240,6 +260,18 @@ proc update*(this: var Player, enemies: seq[Enemy], objects: seq[PhysicalObject]
         if this.attack_timer > 0.8:
             this.in_attack = false
     elif this.in_toss:
+        let prog = this.get_toss_prog()
+        let fac = this.get_toss_factor(prog)
+        if this.sprite.scale.x > 0:
+            this.ind_line.position = this.sprite.position + vec2f(61.0, 73.0)
+            this.ind_line.scale = vec2f(fac, 1.0)
+        else:
+            this.ind_line.position = this.sprite.position + vec2f(-28.0, 73.0)
+            this.ind_line.scale = vec2f(-fac, 1.0)
+
+        let fvec = this.get_toss_vec(prog)
+        this.ind_line.rotation = arctan(fvec.y / fvec.x)
+
         if glfw_window.getKey(GLFWKey.C) != GLFW_PRESS or this.attack_timer > 1.8:
             this.in_toss = false
             this.toss(enemies, objects)
@@ -249,13 +281,20 @@ proc update*(this: var Player, enemies: seq[Enemy], objects: seq[PhysicalObject]
 
     else:
         var lateral = false
+        if glfw_window.getKey(GLFWKey.B) == GLFW_PRESS:
+            this.in_drag = true
+        else:
+            this.in_drag = false
+
         if glfw_window.getKey(GLFWKey.A) == GLFW_PRESS:
             this.phys_body.position = this.phys_body.position + v(-dt * 120.0, 0.0)
-            this.sprite.scale = vec2f(-1.0, 1.0)
+            if not this.in_drag:
+                this.sprite.scale = vec2f(-1.0, 1.0)
             lateral = true
         if glfw_window.getKey(GLFWKey.D) == GLFW_PRESS:
             this.phys_body.position = this.phys_body.position + v(dt * 120.0, 0.0)
-            this.sprite.scale = vec2f(1.0, 1.0)
+            if not this.in_drag:
+                this.sprite.scale = vec2f(1.0, 1.0)
             lateral = true
         if glfw_window.getKey(GLFWKey.V) == GLFW_PRESS:
             this.attack_timer = 0.0
@@ -272,13 +311,13 @@ proc update*(this: var Player, enemies: seq[Enemy], objects: seq[PhysicalObject]
         else:
             this.release_toss = true
         if glfw_window.getKey(GLFWKey.Space) == GLFW_PRESS:
-            if not this.last_jump and this.grounded:
+            if not this.last_jump and (this.grounded or (this.time_in_air < 0.4 and this.sliding)):
                 this.phys_body.applyImpulseAtWorldPoint(v(0, -15000.0), v(0, 0))
                 discard this.jump_wav.play_sound()
             this.last_jump = true
         else:
             this.last_jump = false
-
+        
         if this.time_in_air > 0.5:
             this.sprite.start_anim("fall")
             this.step_sound.pause()
@@ -287,7 +326,11 @@ proc update*(this: var Player, enemies: seq[Enemy], objects: seq[PhysicalObject]
         else:
             this.fall_sound.pause()
             if lateral:
-                this.sprite.start_anim("walk")
+                if this.in_drag:
+                    this.sprite.start_anim("push")
+                else:
+                    this.sprite.start_anim("walk")
+
                 this.step_sound.resume()
             
             if not lateral:
@@ -309,3 +352,6 @@ proc update*(this: var Player, enemies: seq[Enemy], objects: seq[PhysicalObject]
 proc draw*(this: var Player) = 
     renderer.draw(this.sprite)
     renderer.draw(this.lantern)
+
+    if this.in_toss:
+        renderer.draw(this.ind_line)
