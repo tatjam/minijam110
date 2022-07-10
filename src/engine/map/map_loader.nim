@@ -76,7 +76,6 @@ proc create_map_drawer*(map: Table[string, seq[Tile]]): MapDrawer =
             let sprite = create_sprite(tile.image, 0, tile.width, tile.height)
             # We must make a few adjustments as positioning is inverted
             sprite.position = vec2f(tile.position.x.toFloat, tile.position.y.toFloat)
-            echo tile.position
             result.sprites.add(sprite)
 
 
@@ -85,6 +84,8 @@ type Map* = ref object
     # We must keep the segments
     segments*: seq[SegmentShape]
     points*: Table[string, seq[Vec2f]]
+    # Only bounding boxes
+    areas*: Table[string, seq[Vec4f]]
 
 proc hash(x: Vec3i): Hash =
     return x.x.hash !& x.y.hash !& x.z.hash
@@ -199,6 +200,24 @@ proc extract_tiles_of_class(map: MapInfo, class: string, ground: Image): Image =
                 color[1] == ground.pixels[i * 3 + 1] and
                 color[2] == ground.pixels[i * 3 + 2]:
                     copy = true
+        if copy:
+            result.pixels[i * 3 + 0] = ground.pixels[i * 3 + 0]
+            result.pixels[i * 3 + 1] = ground.pixels[i * 3 + 1]
+            result.pixels[i * 3 + 2] = ground.pixels[i * 3 + 2]
+        else:
+            result.pixels[i * 3 + 0] = 255
+            result.pixels[i * 3 + 1] = 255
+            result.pixels[i * 3 + 2] = 255
+            
+proc extract_color(color: Vec3i, ground: Image): Image = 
+    result = create_image(ground.width, ground.height)
+    # Extract them from the image
+    for i in countup(0, ground.width * ground.height - 1):
+        var copy = false
+        if color[0].uint8 == ground.pixels[i * 3 + 0] and
+            color[1].uint8 == ground.pixels[i * 3 + 1] and
+            color[2].uint8 == ground.pixels[i * 3 + 2]:
+                copy = true
         if copy:
             result.pixels[i * 3 + 0] = ground.pixels[i * 3 + 0]
             result.pixels[i * 3 + 1] = ground.pixels[i * 3 + 1]
@@ -544,8 +563,36 @@ proc load_map*(map: string, scale: int, space: Space): Map =
                         let pf = vec2f((x * scale).toFloat, (y * scale).toFloat)
                         points[point.name].add(pf)
 
+
+    # Load areas. This is done by running the extraction algorithm 
+    # and then finding bounds for each tile
+    var areas: Table[string, seq[Vec4f]]
+    for area in map_info.areas:
+        areas[area.name] = newSeq[Vec4f]()
+        for map in images:
+            let color = vec3i(area.color[0].int32, area.color[1].int32, area.color[2].int32)
+            # Separate all tiles
+            var extracted_img = extract_color(color, map)
+            let separate_tiles = extract_separated_tiles(extracted_img)
+            for image in separate_tiles:
+                var min_x = 9999999.0
+                var min_y = 9999999.0
+                var max_x = 0.0
+                var max_y = 0.0
+                for x in countup(0, image.width - 1):
+                    for y in countup(0, image.height - 1):
+                        if image.get_pixel(vec2i(x.int32, y.int32)) == color:
+                            let pf = vec2f((x * scale).toFloat, (y * scale).toFloat)
+                            min_x = min(pf.x, min_x)
+                            min_y = min(pf.y, min_y)
+                            max_x = max(pf.x, max_x)
+                            max_y = max(pf.y, max_y)
+                areas[area.name].add(vec4f(min_x, min_y, max_x, max_y))
+                echo "Extracted area " & area.name & " (" & $areas[area.name][^1]
+
+
     let drawer = create_map_drawer(ground_tiles)
-    return Map(drawer: drawer, segments: segments, points: points)
+    return Map(drawer: drawer, segments: segments, points: points, areas: areas)
 
 
 

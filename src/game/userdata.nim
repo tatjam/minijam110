@@ -3,7 +3,8 @@ type
         bkTerrain,
         bkPlayer,
         bkEnemy,
-        bkObject
+        bkObject,
+        bkBarrier
 
     UserData* = ref object
         kind*: BodyKind 
@@ -27,4 +28,9 @@ proc make_enemy_userdata*(enemy: int): UserData =
 proc make_object_userdata*(obj: int): UserData =
     result = new(UserData)
     result.kind = bkObject
+    result.point = obj
+
+proc make_barrier_userdata*(obj: int): UserData =
+    result = new(UserData)
+    result.kind = bkBarrier
     result.point = obj

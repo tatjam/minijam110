@@ -33,6 +33,8 @@ tiles:
 areas:
 -   name: water
     color: [0, 0, 255]
+-   name: break_wood
+    color: [0, 255, 150]
 
 points:
 -   name: rock

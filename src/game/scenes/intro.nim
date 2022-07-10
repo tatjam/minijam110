@@ -1,5 +1,6 @@
 include ../../engine/base
-include level1
+import ../../engine/graphics/shader
+import level1
 
 
 type IntroScene* = ref object of Scene
@@ -17,8 +18,9 @@ type IntroScene* = ref object of Scene
     frame: bool
     frame_timer: float
 
-method init(this: var IntroScene) =
+method init(this: IntroScene) =
     renderer.camera.center = vec2f(200, 150)
+    renderer.camera.scale = 2.0
     this.stars = create_sprite("res/intro/stars.png")
     this.sky = create_sprite("res/intro/sky.png")
     this.sea_f1 = create_sprite("res/intro/sea_f1.png")
@@ -29,13 +31,15 @@ method init(this: var IntroScene) =
     this.fore_act = create_sprite("res/intro/fore_act.png")
     this.monk = create_sprite("res/intro/monk.png")
     this.music = load_sound("res/intro/intro.mp3")
+    renderer.fullscreen_shader = load_shader("res/shader/fullscreen_intro")
     discard play_sound(this.music)
 
-method update(this: var IntroScene) =
-    this.base_update()
-
+method update(this: IntroScene) =
     this.time += dt
     this.frame_timer += dt
+    
+    renderer.camera.center = vec2f(200 - this.time, 130 + this.time * 2.2)
+
     if this.frame_timer > 0.5:
         this.frame = not this.frame
         this.frame_timer = 0.0
@@ -46,9 +50,7 @@ method update(this: var IntroScene) =
     if this.time > 27:
         goto_scene(Level1Scene())
 
-method render(this: var IntroScene) = 
-    this.base_render()
-
+method render(this: IntroScene) = 
     renderer.draw(this.sky)
     renderer.draw(this.sun)
     if this.frame:
