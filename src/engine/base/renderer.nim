@@ -60,6 +60,8 @@ proc resize(renderer: var Renderer, width: int, height: int) =
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST.GLint)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST.GLint)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP.GLint)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP.GLint)
 
     glGenRenderbuffers(1, addr renderer.depth_buffer)
     glBindRenderbuffer(GL_RENDERBUFFER, renderer.depth_buffer)

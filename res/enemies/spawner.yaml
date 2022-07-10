@@ -1,0 +1,24 @@
+sprite: res/enemies/spawner.png
+fx_sprite: none
+scale_origin: [16.0, 16.0]
+animations:
+-   name: "idle"
+    loop: true
+    frames:
+        -   clip: [0, 0, 40, 80]
+            duration: 1.0
+-   name: "spawn"
+    loop: false
+    frames:
+        -   clip: [40, 0, 40, 80]
+            duration: 0.4
+        -   clip: [80, 0, 40, 80]
+            duration: 0.4
+        -   clip: [120, 0, 40, 80]
+            duration: 0.4
+        -   clip: [80, 0, 40, 80]
+            duration: 0.4
+        -   clip: [40, 0, 40, 80]
+            duration: 0.4
+        -   clip: [0, 0, 40, 80]
+            duration: 0.4

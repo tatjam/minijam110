@@ -23,7 +23,7 @@ type Sprite* = ref object
     layer*: int
     # Position, to be used with the renderer
     position*: Vec2f
-    rotation: float
+    rotation*: float
     scale*: Vec2f
     # Movement in pixels respect to the sprite top-left corner
     # Also used for rotation

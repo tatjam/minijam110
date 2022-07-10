@@ -94,6 +94,8 @@ void main()
     vec2 off = (vec2(n, n) * 2.0 - 1.0) * 0.015 * fac;
     
     vec2 fxcoord = coord + off;
+    fxcoord.x = max(min(fxcoord.x, 1.0), 0.0);
+    fxcoord.y = max(min(fxcoord.y, 1.0), 0.0);
 
     // Effects, we do lighting
     vec4 fx = texture(fxtex, fxcoord);

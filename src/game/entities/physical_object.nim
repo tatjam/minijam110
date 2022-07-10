@@ -25,6 +25,8 @@ type
         phys_body*: Body
         phys_shape*: Shape
         user_data: UserData
+        dead*: bool
+        next_die: bool
 
 # A button will remain
 proc on_collide(this: PhysicalObject, other: BodyKind, dir: Vect) =
@@ -44,9 +46,22 @@ proc phys_object_handler(arb: Arbiter, sp: Space, data: pointer) {.cdecl.} =
         let cset = contactPointSet(arb)
         objects[oudata.point].on_collide(udata.kind, cset.normal)
 
-proc update*(this: var PhysicalObject) =
+proc indirect_die*(this: var PhysicalObject) =
+    this.next_die = true
+
+proc die*(this: var PhysicalObject, space: Space) = 
+    let pos = this.phys_body.position
+    let vpos = vec2f(pos.x, pos.y)
+    space.removeShape(this.phys_shape)
+    space.removeBody(this.phys_body)
+    this.dead = true
+
+proc update*(this: var PhysicalObject, space: Space) =
     this.sprite.center_position = vec2f(this.phys_body.position.x, this.phys_body.position.y)
     this.sprite.rotation = this.phys_body.angle
+
+    if this.next_die:
+        this.die(space)
 
     if this.kind == okButton:
         if this.active:

@@ -24,6 +24,8 @@ type Player* = ref object
     in_toss: bool
     release_toss: bool
 
+    control_lock: bool
+
     in_drag: bool
 
     step_wav: WavHandle
@@ -33,8 +35,8 @@ type Player* = ref object
     miss_wav: WavHandle
     hit_wav: WavHandle
     attack_wav: WavHandle
-    step_sound: AudioHandle
-    fall_sound: AudioHandle
+    step_sound*: AudioHandle
+    fall_sound*: AudioHandle
 
 
 # This must be here to avoid circular dependency hell
@@ -345,13 +347,17 @@ proc update*(this: var Player, enemies: seq[Enemy], objects: seq[PhysicalObject]
     let off = if this.sprite.scale.x > 0.0: 32.0 else: 7.0
     this.lantern.center_position = this.sprite.position + vec2f(off, 9.0)
     this.sprite.animate(dt)
+    
+    renderer.camera.center = this.sprite.position
+    renderer.camera.scale = 1.0
 
 
 
 
 proc draw*(this: var Player) = 
     renderer.draw(this.sprite)
-    renderer.draw(this.lantern)
 
+proc draw_fx*(this: var Player) = 
+    renderer.draw(this.lantern)
     if this.in_toss:
         renderer.draw(this.ind_line)

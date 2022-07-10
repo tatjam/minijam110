@@ -1,0 +1,9 @@
+sprite: res/deco/light.png
+fx_sprite: res/deco/light_emit.png
+scale_origin: [0.0, 0.0]
+animations:
+-   name: "idle"
+    loop: true
+    frames:
+        -   clip: [0, 0, 256, 256]
+            duration: 1.0

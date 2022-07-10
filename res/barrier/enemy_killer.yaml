@@ -1,0 +1,13 @@
+sprite: res/barrier/enemy_killer.png
+fx_sprite: res/barrier/enemy_killer.png
+scale_origin: [0.0, 0.0]
+animations:
+-   name: "idle"
+    loop: true
+    frames:
+        -   clip: [0, 0, 20, 20]
+            duration: 0.1
+        -   clip: [20, 0, 20, 20]
+            duration: 0.1
+        -   clip: [40, 0, 20, 20]
+            duration: 0.1
