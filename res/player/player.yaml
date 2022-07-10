@@ -40,3 +40,39 @@ animations:
     frames:
         -   clip: [210, 76, 70, 76]
             duration: 0.2
+-   name: "attack"
+    loop: false
+    frames:
+        -   clip: [140, 152, 70, 76]
+            duration: 0.1
+        -   clip: [210, 152, 70, 76]
+            duration: 0.1
+        -   clip: [280, 152, 70, 76]
+            duration: 0.1
+        -   clip: [280, 76, 70, 76]
+            duration: 0.2
+        -   clip: [280, 0, 70, 76]
+            duration: 0.3
+-   name: "toss"
+    loop: false
+    frames:
+        -   clip: [350, 0, 70, 76]
+            duration: 0.6
+        -   clip: [350, 76, 70, 76]
+            duration: 0.4
+        -   clip: [350, 152, 70, 76]
+            duration: 0.1
+        -   clip: [350, 76, 70, 76]
+            duration: 0.1
+        -   clip: [350, 152, 70, 76]
+            duration: 0.1
+        -   clip: [350, 76, 70, 76]
+            duration: 0.1
+        -   clip: [350, 152, 70, 76]
+            duration: 0.1
+        -   clip: [350, 76, 70, 76]
+            duration: 0.1
+        -   clip: [350, 152, 70, 76]
+            duration: 0.1
+        -   clip: [350, 76, 70, 76]
+            duration: 0.1

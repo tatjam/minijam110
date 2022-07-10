@@ -2,6 +2,7 @@ seed: 1234
 
 images:
 -   res/level1/map.png
+-   res/level1/map_ent.png
 
 tiles:
 -   class: ground
@@ -18,6 +19,16 @@ tiles:
     texture: res/level1/sand.png
     noise: 3.0
     color: [200, 200, 200]
+
+-   class: B@back 
+    texture: res/level1/back.png
+    noise: 1.0
+    color: [240, 240, 240]
+
+-   class: B@backwood 
+    texture: res/level1/wood_back.png
+    noise: 0.0
+    color: [160, 160, 160]
 
 areas:
 -   name: water

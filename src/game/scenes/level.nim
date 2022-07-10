@@ -43,23 +43,24 @@ proc init*(this: var Level, map: string, scale: int) =
     # Create all types of stuff
     if this.map.points.hasKey("rockman"):
         for point in this.map.points["rockman"]:
-            this.enemies.add(create_rockman(point, this.physics_space))
+            this.enemies.add(create_rockman(point, this.physics_space, this.enemies.len))
     
     if this.map.points.hasKey("rock"):
         for point in this.map.points["rock"]:
-            this.physical_objects.add(create_rock(point, this.physics_space))
+            this.physical_objects.add(create_rock(point, this.physics_space, this.physical_objects.len))
 
     if this.map.points.hasKey("magmarock"):
         for point in this.map.points["magmarock"]:
-            this.physical_objects.add(create_magmarock(point, this.physics_space))
+            this.physical_objects.add(create_magmarock(point, this.physics_space, this.physical_objects.len))
 
 proc update*(this: var Level) = 
     this.physics_space.step(dt)
     for enemy in mitems(this.enemies):
-        enemy.update(this.player)
+        if not enemy.dead:
+            enemy.update(this.player, this.physical_objects, this.physics_space)
     for phys_obj in mitems(this.physical_objects):
         phys_obj.update()
-    this.player.update()
+    this.player.update(this.enemies, this.physical_objects)
 
     renderer.camera.center = this.player.sprite.position
     renderer.camera.scale = 1.0
@@ -67,7 +68,8 @@ proc update*(this: var Level) =
 proc draw*(this: var Level) = 
     this.map.drawer.draw_tiles()
     for enemy in mitems(this.enemies):
-        enemy.draw()
+        if not enemy.dead:
+            enemy.draw()
     for phys_obj in mitems(this.physical_objects):
         phys_obj.draw()
     this.player.draw()

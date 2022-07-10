@@ -206,6 +206,10 @@ proc rotation*(sprite: AnimatedSprite): float =
     return sprite.sprite.rotation
 
 proc animate*(sprite: var AnimatedSprite, dt: float) = 
+    if sprite.animations.has_key(sprite.cur_anim):
+        var anim = sprite.animations[sprite.cur_anim]
+        if anim.frame < anim.frames.len:
+            sprite.sprite.clip = anim.frames[anim.frame].frame
     if sprite.paused:
         return
 

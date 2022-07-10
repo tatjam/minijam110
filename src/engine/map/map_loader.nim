@@ -250,12 +250,12 @@ proc bilinear_interp(tl: Vec3i, tr: Vec3i, bl: Vec3i, br: Vec3i, h: float, v: fl
     return vec3i(sum.x.int32, sum.y.int32, sum.z.int32)
 
 proc marching_squares(tile: Image, scale: int, tile_info: Table[Vec3i, TileData], space: Space,
-    segments: var seq[SegmentShape]): Tile =
+    segments: var seq[SegmentShape], collide: bool): Tile =
     let bounds = get_bounds(tile)
     echo "Processing tile of size: " & $(bounds.z - bounds.x + 1) & "x" & $(bounds.w - bounds.y + 1)
     let pos = vec2i(bounds.x * scale.int32, bounds.y * scale.int32)
     echo bounds
-    var image = create_image((bounds.z - bounds.x + 2) * scale, (bounds.w - bounds.y + 2) * scale)
+    var image = create_image((bounds.z - bounds.x + 2) * scale, (bounds.w - bounds.y + 2) * scale, true)
     var body = newBody(1.0, 1.0)
 
     # We travel the corners of the pixels in the map texture
@@ -279,57 +279,58 @@ proc marching_squares(tile: Image, scale: int, tile_info: Table[Vec3i, TileData]
                 continue
 
             # Generate the segment(s)
-            if ms_case != 15:
-                var v0: Vect
-                var v1: Vect
-                var has_two: bool
-                var v2: Vect
-                var v3: Vect
-                case ms_case:
-                of 1, 14:
-                    v0 = v(tx - 0.5, ty + 0.5)
-                    v1 = v(tx, ty + 1.0)
-                of 2, 13:
-                    v0 = v(tx + 0.5, ty + 0.5)
-                    v1 = v(tx, ty + 1.0)
-                of 3, 12:
-                    v0 = v(tx - 0.5, ty)
-                    v1 = v(tx + 0.5, ty)
-                of 4, 11:
-                    v0 = v(tx + 0.5, ty)
-                    v1 = v(tx, ty - 0.5)
-                of 5:
-                    v0 = v(tx - 0.5, ty)
-                    v1 = v(tx, ty - 0.5)
-                    has_two = true
-                    v2 = v(tx + 0.5, ty + 0.5)
-                    v1 = v(tx, ty + 1.0)
-                of 6, 9:
-                    v0 = v(tx, ty - 0.5)
-                    v1 = v(tx, ty + 0.5)
-                of 7, 8:
-                    v0 = v(tx - 0.5, ty)
-                    v1 = v(tx, ty - 0.5)
-                of 10:
-                    v0 = v(tx - 0.5, ty + 0.5)
-                    v1 = v(tx, ty + 1.0)
-                    has_two = true
-                    v2 = v(tx + 0.5, ty)
-                    v3 = v(tx, ty - 0.5)
-                else:
-                    discard
+            if collide:
+                if ms_case != 15:
+                    var v0: Vect
+                    var v1: Vect
+                    var has_two: bool = false
+                    var v2: Vect
+                    var v3: Vect
+                    case ms_case:
+                    of 1, 14:
+                        v0 = v(tx - 0.5, ty + 0.5)
+                        v1 = v(tx, ty + 1.0)
+                    of 2, 13:
+                        v0 = v(tx + 0.5, ty + 0.5)
+                        v1 = v(tx, ty + 1.0)
+                    of 3, 12:
+                        v0 = v(tx - 0.5, ty)
+                        v1 = v(tx + 0.5, ty)
+                    of 4, 11:
+                        v0 = v(tx + 0.5, ty)
+                        v1 = v(tx, ty - 0.5)
+                    of 5:
+                        v0 = v(tx - 0.5, ty)
+                        v1 = v(tx, ty - 0.5)
+                        has_two = true
+                        v2 = v(tx + 0.5, ty + 0.5)
+                        v3 = v(tx, ty + 1.0)
+                    of 6, 9:
+                        v0 = v(tx, ty - 0.5)
+                        v1 = v(tx, ty + 0.5)
+                    of 7, 8:
+                        v0 = v(tx - 0.5, ty)
+                        v1 = v(tx, ty - 0.5)
+                    of 10:
+                        v0 = v(tx - 0.5, ty + 0.5)
+                        v1 = v(tx, ty + 1.0)
+                        has_two = true
+                        v2 = v(tx + 0.5, ty)
+                        v3 = v(tx, ty - 0.5)
+                    else:
+                        discard
 
-                v0 = v(v0.x * scale.toFloat, v0.y * scale.toFloat)
-                v1 = v(v1.x * scale.toFloat, v1.y * scale.toFloat)
-                v2 = v(v2.x * scale.toFloat, v2.y * scale.toFloat)
-                v3 = v(v3.x * scale.toFloat, v3.y * scale.toFloat)
-                var segment = newSegmentShape(space.staticBody, v0, v1, 1)
-                segments.add(segment)
-                discard space.addShape(segments[^1])
-                if has_two:
-                    let segment2 = newSegmentShape(space.staticBody, v2, v3, 1)
+                    v0 = v(v0.x * scale.toFloat, v0.y * scale.toFloat)
+                    v1 = v(v1.x * scale.toFloat, v1.y * scale.toFloat)
+                    v2 = v(v2.x * scale.toFloat, v2.y * scale.toFloat)
+                    v3 = v(v3.x * scale.toFloat, v3.y * scale.toFloat)
+                    var segment = newSegmentShape(space.staticBody, v0, v1, 1)
                     segments.add(segment)
                     discard space.addShape(segments[^1])
+                    if has_two:
+                        var segment2 = newSegmentShape(space.staticBody, v2, v3, 1)
+                        segments.add(segment2)
+                        discard space.addShape(segments[^1])
 
 
             var tldata, trdata, bldata, brdata: Option[TileData]
@@ -488,6 +489,7 @@ proc extract_separated_tiles(imageo: Image): seq[Image] =
 
     return tiles
 
+# classes of name B@wathever will not have collision (they are useful as backgrounds)
 proc load_map*(map: string, scale: int, space: Space): Map =
     let map_info = load_map_info(map)
     # Load images
@@ -524,7 +526,8 @@ proc load_map*(map: string, scale: int, space: Space): Map =
     for class, images in ground_tiles_img:
         var tiles: seq[Tile]
         for image in images:
-            tiles.add(marching_squares(image, scale, tile_textures, space, segments))
+            tiles.add(marching_squares(image, scale, tile_textures, space, segments,
+            not(class[0] == 'B' and class[1] == '@')))
         ground_tiles[class] = tiles
 
 
