@@ -8,6 +8,8 @@ import ../entities/physical_object
 import ../../engine/base/renderer as rnd
 import level
 
+import cutsc3
+
 type Level4Scene* = ref object of Scene
     music: WavHandle
     musich: AudioHandle
@@ -57,7 +59,7 @@ method update(this: Level4Scene) =
 
     if this.level.update():
         this.musich.pause()
-        goto_scene(Level4Scene())
+        goto_scene(CutScene3())
 
     var op = true
     for button in this.level.buttons_idx:
