@@ -9,13 +9,13 @@ import sequtils
 import ../userdata
 
 type 
-    EnemyKind = enum
+    EnemyKind* = enum
         ekRockman,
         ekRockmanSpawner,
         ekBird
 
     Enemy* = ref object 
-        case kind: EnemyKind
+        case kind*: EnemyKind
         of ekRockman:
             retreat_timer: float
             retreat_goal: float
@@ -24,6 +24,7 @@ type
             dumb: int
         of ekRockmanSpawner:
             spawn_timer: float
+            spawn_timer_def*: float
             children: seq[Enemy]
             max_children: int
         of ekBird:
@@ -71,13 +72,14 @@ proc create_rockman_spawner*(pos: Vec2f, space: Space, id: int): Enemy =
     result.phys_shape.friction = 1.0
     result.phys_body.position = v(pos.x, pos.y - 40.0)
 
-    result.hurt_wav = load_sound("res/enemies/rockman_hurt.mp3")
+    result.hurt_wav = load_sound("res/enemies/metalhurt.mp3")
     result.user_data = make_enemy_userdata(id)
     result.phys_shape.userData = addr result.user_data
 
     result.health = 6.0
     result.spawn_timer = 0.0
     result.max_children = 5
+    result.spawn_timer_def = 15.0
 
 proc create_bird*(pos: Vec2f, space: Space, id: int): Enemy = 
     result = base_create(ekBird)
@@ -90,7 +92,7 @@ proc create_bird*(pos: Vec2f, space: Space, id: int): Enemy =
     result.phys_shape.friction = 0.3
     result.phys_body.position = v(pos.x, pos.y - 10.0)
 
-    result.hurt_wav = load_sound("res/enemies/rockman_hurt.mp3")
+    result.hurt_wav = load_sound("res/enemies/metalhurt.mp3")
     result.user_data = make_enemy_userdata(id)
     result.phys_shape.userData = addr result.user_data
 
@@ -156,7 +158,7 @@ proc update*(this: var Enemy, player: Player, objects: var seq[PhysicalObject], 
             elif this.spawn_timer < 5.0:
                 this.sprite.start_anim("idle")
             if this.spawn_timer < 0.0 and this.children.len < this.max_children:
-                this.spawn_timer = 15.0
+                this.spawn_timer = this.spawn_timer_def
                 var pos = vec2f(this.sprite.center_position.x - 40.0, this.sprite.center_position.y)
                 var dumb = -1
                 if this.sprite.scale.x < 0.0:
@@ -180,7 +182,7 @@ proc update*(this: var Enemy, player: Player, objects: var seq[PhysicalObject], 
                     (scale.x > 0.0 and player_dir.x > 0.0):
                         # Player walked into our attack!
                         this.turn_timer = 0.0
-            elif player_dist < 150.0:            
+            elif player_dist < 190.0:            
                 # Move quickly towards the player, but with turn-around inertia
                 if (scale.x < 0.0 and player_dir.x > 0.0) or
                     (scale.x > 0.0 and player_dir.x < 0.0):
@@ -188,6 +190,9 @@ proc update*(this: var Enemy, player: Player, objects: var seq[PhysicalObject], 
                     this.turn_timer = 3.0
                 else:
                     this.phys_body.velocity = v(player_dir.x * 120.0, this.phys_body.velocity.y)
+                    if player_dist < 75.0 and player_dir.y < -0.5:
+                        if player.try_hurt():
+                            this.sprite.start_anim("bloody")
 
     else:
         this.toss_timer -= dt

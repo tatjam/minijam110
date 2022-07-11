@@ -2,56 +2,92 @@ include ../../engine/base
 import ../../engine/map/map_loader
 import ../../engine/graphics/sprite
 import ../entities/player
+import ../entities/enemy
 import ../entities/platform
 import ../entities/physical_object
 import ../../engine/base/renderer as rnd
 import level
-import cutsc2
 
-type Level3Scene* = ref object of Scene
+type Level4Scene* = ref object of Scene
     music: WavHandle
+    musich: AudioHandle
+    final: WavHandle
+    finalh: AudioHandle
+    roar1: WavHandle
+    roar2: WavHandle
     level: Level
     open: bool
-    event_played: bool
-    cable: Line
-    run_sound: WavHandle
+    event_timer: float
+    roared: bool
+    roared2: bool
+    roared3: bool
 
-method init(this: Level3Scene) =
-    this.music = load_sound("res/level3/music.mp3")
-    discard play_sound(this.music, true)
-    this.level.init("res/level3/map.yaml", "res/level1/backdrop.png", "none", 20)
-    let points = @[vec2f(71.0 * 20.0 + 5.0, 87.0 * 20.0 + 15.0), vec2f(75.0 * 20.0, 87.0 * 20.0 + 15.0), 
-        vec2f(75.0 * 20.0, 83.0 * 20.0)]
-    this.cable = create_line(points, 8.0)
-    this.cable.color = vec4f(0.1, 0.1, 0.1, 0.7)
-    this.run_sound = load_sound("res/level3/run.mp3")
+method init(this: Level4Scene) =
+    this.music = load_sound("res/level4/music.mp3")
+    this.final = load_sound("res/final/finalboss.mp3")
+    this.roar1 = load_sound("res/final/roar1.mp3")
+    this.roar2 = load_sound("res/final/roar2.mp3")
+    this.finalh = this.final.create_sound(true)
+    this.musich = play_sound(this.music, true)
+    this.level.init("res/level4/map.yaml", "res/level4/backdrop.png", "none", 20)
+    
+    this.level.platforms.add(create_platform(
+        v(60.0 * 20.0 + 30.0, 86.0 * 20.0),
+        v(173 * 20.0, 31.0 * 20.0),
+        vec2f(55.0 * 20.0, 86.0 * 20.0),
+        vec2f(176 * 20.0, 31.0 * 20.0),
+        this.level.physics_space
+    ))
+    this.level.platforms[0].speed = 60.0
+    this.event_timer = -1.0
 
 
-
-method update(this: Level3Scene) =
+method update(this: Level4Scene) =
     if this.level.reinit:
-        this.event_played = false
+        for enemy in this.level.enemies:
+            if enemy.kind == ekRockmanSpawner:
+                enemy.sprite.scale = vec2f(-1.0, 1.0)
+                enemy.spawn_timer_def = 7.0
+        this.event_timer = -1.0
+        this.musich.set_volume(0.8)
+        this.finalh.pause()
+        this.roared = false
+        this.roared2 = false
+        this.roared3 = false
 
     if this.level.update():
-        goto_scene(CutScene2())
+        this.musich.pause()
+        goto_scene(Level4Scene())
+
+    var op = true
+    for button in this.level.buttons_idx:
+        if button > 0:
+            op = op and this.level.physical_objects[button].active
     
-    let button_obj = this.level.physical_objects[this.level.buttons_idx[0]]
-    if button_obj.active:
-        this.cable.fx_color = vec4f(1.0, 0.4, 0.4, 1.0)
-        this.open = true
-        this.level.barriers[1].health = 0.0
+    if op:
+        this.level.barriers[0].health = 0.0
+
+    if this.event_timer >= 0.0:
+        this.event_timer += dt
+        this.musich.set_volume(max(1.0 - this.event_timer, 0.0))
+        this.finalh.set_volume(min(this.event_timer, 1.0))
+        this.finalh.resume()
+
+        if this.event_timer >= 4.0 and not this.roared:
+            discard this.roar1.play_sound(false)
+            this.roared = true
+
+        if this.event_timer >= 12.0 and not this.roared2:
+            discard this.roar1.play_sound(false)
+            this.roared2 = true
+        
+        if this.event_timer >= 16.0 and not this.roared3:
+            discard this.roar2.play_sound(false)
+            this.roared3 = true
     else:
-        this.cable.fx_color = vec4f(0, 0, 0, 0)
+        if this.level.player.sprite.position.x > 90.0 * 20.0:
+            this.event_timer = 0.0
+    
 
-    if not this.event_played:
-        if this.level.player.sprite.center_position.y < 40.0 * 20.0:
-            discard this.run_sound.play_sound()
-            for obj in this.level.physical_objects:
-                if obj.kind == okMagmaRock:
-                    let p = obj.phys_body.position
-                    obj.phys_body.applyImpulseAtWorldPoint(v(10000.0, 0.0), p)
-                    this.event_played = true
-
-method render(this: Level3Scene) = 
+method render(this: Level4Scene) = 
     this.level.draw()
-    renderer.draw(this.cable)

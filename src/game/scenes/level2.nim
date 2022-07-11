@@ -10,6 +10,7 @@ import level3
 
 type Level2Scene* = ref object of Scene
     music: WavHandle
+    musich: AudioHandle
     level: Level
     tut: seq[Sprite]
     open: bool
@@ -17,7 +18,7 @@ type Level2Scene* = ref object of Scene
 
 method init(this: Level2Scene) =
     this.music = load_sound("res/level1/music.mp3")
-    discard play_sound(this.music, true)
+    this.musich = play_sound(this.music, true)
     this.level.init("res/level2/map.yaml", "res/level2/backdrop.png", "res/level2/backdrop_fx.png", 20)
     let points = @[vec2f(92.0 * 20.0 + 5.0, 75.0 * 20.0 + 15.0), vec2f(98.0 * 20.0, 75.0 * 20.0 + 15.0), 
         vec2f(98.0 * 20.0, 59.0 * 20.0)]
@@ -43,7 +44,7 @@ method init(this: Level2Scene) =
 
 method update(this: Level2Scene) =
     if this.level.update():
-        echo "Scene change"
+        this.musich.pause()
         goto_scene(Level3Scene())
     let button_obj = this.level.physical_objects[this.level.buttons_idx[0]]
     if button_obj.active:

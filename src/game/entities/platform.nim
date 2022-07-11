@@ -16,7 +16,8 @@ type Platform* = ref object
     track_body*: Body
     track_shape*: Shape
     spring*: Constraint
-    speed: float
+    speed*: float
+    distt: float
 
     progress: float
     p0: Vect
@@ -63,7 +64,8 @@ proc create_platform*(p0: Vect, p1: Vect, lanchor0: Vec2f, lanchor1: Vec2f, spac
     result.p0 = p0
     result.p1 = p1
 
-    result.speed = 50.0 / vdist(result.p0, result.p1)
+    result.distt = vdist(result.p0, result.p1)
+    result.speed = 50.0
 
     var points: seq[Vec2f]
     points.add(lanchor0)
@@ -107,10 +109,11 @@ proc update*(this: var Platform, player: Player, control_platform: Option[Platfo
         player.phys_body.position = v(-100.0, -100.0)
         player.fall_sound.pause()
         player.step_sound.pause()
+        let mspeed = this.speed / this.distt
         if glfw_window.getKey(GLFWKey.A) == GLFW_PRESS:
-            this.progress -= dt * this.speed
+            this.progress -= dt * mspeed
         elif glfw_window.getKey(GLFWKey.D) == GLFW_PRESS:
-            this.progress += dt * this.speed
+            this.progress += dt * mspeed
         
         # Stop controlling
         if glfw_window.getKey(GLFWKey.E) == GLFW_PRESS and not this.just_hopped:

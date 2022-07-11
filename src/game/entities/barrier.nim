@@ -90,6 +90,8 @@ proc create_barrier_segment(this: Barrier, sprite: string, pos: Vec2f, size: int
     
     # Center barriers
     sprite.position = pos + vec2f(size.toFloat * 0.5, size.toFloat * 0.5)
+    if hor:
+        sprite.position = vec2f(sprite.position.x + size.toFloat, sprite.position.y)
 
     this.sprites.add(sprite)
 

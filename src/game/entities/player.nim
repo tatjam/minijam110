@@ -38,6 +38,20 @@ type Player* = ref object
     step_sound*: AudioHandle
     fall_sound*: AudioHandle
 
+    blood0: Sprite
+    blood1: Sprite
+    blood2: Sprite
+
+    health*: float
+    hurt_timer: float
+
+
+proc try_hurt*(this: Player): bool =
+    if this.hurt_timer < 0.0:
+        this.health -= 1.0
+        this.hurt_timer = 2.0
+        this.phys_body.applyImpulseAtWorldPoint(v(0.0, -8000.0), this.phys_body.position)
+        return true
 
 # This must be here to avoid circular dependency hell
 import enemy
@@ -70,10 +84,17 @@ proc create_player*(pos: Vec2f, space: Space): Player =
     result.step_sound = create_sound(result.step_wav, true)
     result.fall_sound = create_sound(result.fall_wav, true)
 
-    let points = @[vec2f(0.0, 0.0), vec2f(20.0, 0.0), vec2f(15.0, 5.0), vec2f(15.0, -5.0)]
+    result.blood0 = create_sprite("res/blood0.png")
+    result.blood0.clear_fx = false
+    result.blood1 = create_sprite("res/blood1.png")
+    result.blood1.clear_fx = false
+    result.blood2 = create_sprite("res/blood2.png")
+    result.blood2.clear_fx = false
+
+    result.health = 5.0
+
+    let points = @[vec2f(0.0, 0.0), vec2f(20.0, 0.0), vec2f(15.0, 5.0), vec2f(20.0, 0.0), vec2f(15.0, -5.0)]
     result.ind_line = create_line(points, 4.0)
-
-
 
 proc ground_query_foot(sh: Shape, p: Vect, n: Vect, a: Float, data: pointer) {.cdecl.} = 
     if sh.userData == nil:
@@ -102,6 +123,10 @@ proc query_hit(sh: Shape, p: Vect, n: Vect, a: Float, data: pointer) {.cdecl.} =
                 datac[].hit = true
                 hurt(datac[].enemies[enemy_idx], p)
 
+
+proc deinit*(this: Player) =
+    this.step_sound.pause()
+    this.fall_sound.pause()
 
 proc hit(this: Player, enemies: seq[Enemy]): bool =
     let rays = this.phys_body.position + v(0.0, 0.0)
@@ -212,6 +237,7 @@ proc toss(this: Player, enemies: seq[Enemy], objects: seq[PhysicalObject]) =
     segmentQuery(this.phys_space, rays, raye2, Float(14.0), filter, query_toss, addr query_data)
 
 proc update*(this: var Player, enemies: seq[Enemy], objects: seq[PhysicalObject]) =
+    this.hurt_timer -= dt
     # Ground check
     let rfootp = this.phys_body.position + v(34.0, 25.0)
     let lfootp = this.phys_body.position + v(-34.0, 25.0)
@@ -361,3 +387,13 @@ proc draw_fx*(this: var Player) =
     renderer.draw(this.lantern)
     if this.in_toss:
         renderer.draw(this.ind_line)
+    
+    this.blood0.center_position = renderer.camera.center
+    this.blood1.center_position = renderer.camera.center
+    this.blood2.center_position = renderer.camera.center
+    if this.health < 2.0:
+        renderer.draw(this.blood2)
+    elif this.health < 3.0:
+        renderer.draw(this.blood1)
+    elif this.health < 4.0:
+        renderer.draw(this.blood0)

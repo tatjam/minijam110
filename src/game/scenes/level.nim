@@ -29,7 +29,7 @@ type Level* = ref object
     physics_space*: Space
     physical_objects*: seq[PhysicalObject]
     barriers*: seq[Barrier]
-    enemies: seq[Enemy]
+    enemies*: seq[Enemy]
     # Must be manually created
     platforms*: seq[Platform]
     doors: seq[Door]
@@ -84,7 +84,7 @@ proc init_no_map(this: var Level, scale: int) =
             let point = this.map.points[str][0]
             this.physical_objects.add(create_button(point, this.physics_space, this.physical_objects.len, 
                 addr this.physical_objects))
-            this.buttons_idx[0] = this.physical_objects.len - 1
+            this.buttons_idx[i] = this.physical_objects.len - 1
 
 
     # Load barriers
@@ -128,8 +128,9 @@ proc init_no_map(this: var Level, scale: int) =
 # Removes all physical objects EXCEPT the world, and reinits
 proc restart(this: var Level) =
     for obj in this.physical_objects:
-        this.physics_space.removeBody(obj.phys_body)
-        this.physics_space.removeShape(obj.phys_shape)
+        if not obj.dead:
+            this.physics_space.removeBody(obj.phys_body)
+            this.physics_space.removeShape(obj.phys_shape)
     for barrier in this.barriers:
         if not barrier.broken:
             this.physics_space.removeShape(barrier.phys_shape)
@@ -138,6 +139,8 @@ proc restart(this: var Level) =
             this.physics_space.removeBody(enemy.phys_body)
             this.physics_space.removeShape(enemy.phys_shape)
 
+
+    this.player.deinit()
     this.physics_space.removeBody(this.player.phys_body)
     this.physics_space.removeShape(this.player.phys_shape)
 
@@ -225,6 +228,7 @@ proc update*(this: var Level): bool =
         exit = exit or door.update(this.player)
 
     if exit:
+        this.player.deinit()
         return true
 
 
@@ -252,8 +256,11 @@ proc update*(this: var Level): bool =
     # Check die areas
     for area in this.kill:
         let pos = this.player.sprite.position
-        if pos.x > area.x and pos.y > area.y and pos.x < area.x + area.z and pos.y < area.y + area.w:
+        if pos.x > area.x and pos.y > area.y and pos.x < area.z and pos.y < area.w:
             this.die()
+
+    if this.player.health < 0.0:
+        this.die()
     
     if this.die_timer > 0.0:
         this.die_timer -= dt
