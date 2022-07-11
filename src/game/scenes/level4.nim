@@ -67,6 +67,7 @@ method update(this: Level4Scene) =
             op = op and this.level.physical_objects[button].active
     
     if op:
+        this.level.barriers[1].health = 0.0
         this.level.barriers[0].health = 0.0
 
     if this.event_timer >= 0.0:
