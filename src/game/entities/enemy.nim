@@ -11,7 +11,8 @@ import ../userdata
 type 
     EnemyKind = enum
         ekRockman,
-        ekRockmanSpawner
+        ekRockmanSpawner,
+        ekBird
 
     Enemy* = ref object 
         case kind: EnemyKind
@@ -25,6 +26,9 @@ type
             spawn_timer: float
             children: seq[Enemy]
             max_children: int
+        of ekBird:
+            spawn_point: Vec2f
+            turn_timer: float
 
         dead*: bool
         health: float
@@ -74,6 +78,25 @@ proc create_rockman_spawner*(pos: Vec2f, space: Space, id: int): Enemy =
     result.health = 6.0
     result.spawn_timer = 0.0
     result.max_children = 5
+
+proc create_bird*(pos: Vec2f, space: Space, id: int): Enemy = 
+    result = base_create(ekBird)
+    result.sprite = create_animated_sprite("res/enemies/bird.yaml")
+    let mass = 200.0
+    let moment = momentForBox(mass, 40.0, 36.0)
+
+    result.phys_body = space.addBody(newBody(mass, moment))
+    result.phys_shape = space.addShape(newBoxShape(result.phys_body, 40.0, 36.0, 0.0))
+    result.phys_shape.friction = 0.3
+    result.phys_body.position = v(pos.x, pos.y - 10.0)
+
+    result.hurt_wav = load_sound("res/enemies/rockman_hurt.mp3")
+    result.user_data = make_enemy_userdata(id)
+    result.phys_shape.userData = addr result.user_data
+
+    result.health = 10.0
+    result.spawn_point = pos
+    result.turn_timer = 0.0
 
 
 proc indirect_die*(this: var Enemy) = 
@@ -143,6 +166,28 @@ proc update*(this: var Enemy, player: Player, objects: var seq[PhysicalObject], 
                 inc enemy_count
                 result.get().dumb = dumb
                 this.children.add(result.get())
+        elif this.kind == ekBird:
+            var player_dir = player.sprite.position - this.sprite.position
+            let player_dist = length(player_dir)
+            player_dir /= player_dist
+            let scale = this.sprite.scale
+            if this.turn_timer > 0.0:
+                this.turn_timer -= dt
+                if this.turn_timer < 0.0:
+                    # Turn
+                    this.sprite.scale = vec2f(-this.sprite.scale.x, 1.0)
+                if (scale.x < 0.0 and player_dir.x < 0.0) or
+                    (scale.x > 0.0 and player_dir.x > 0.0):
+                        # Player walked into our attack!
+                        this.turn_timer = 0.0
+            elif player_dist < 150.0:            
+                # Move quickly towards the player, but with turn-around inertia
+                if (scale.x < 0.0 and player_dir.x > 0.0) or
+                    (scale.x > 0.0 and player_dir.x < 0.0):
+                    # we are looking one way, but must go the other, start timer
+                    this.turn_timer = 3.0
+                else:
+                    this.phys_body.velocity = v(player_dir.x * 120.0, this.phys_body.velocity.y)
 
     else:
         this.toss_timer -= dt

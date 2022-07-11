@@ -1,13 +1,15 @@
 # An object is a physical thing you can interact with by some means
 
 include ../../engine/base
+import ../../engine/audio/audio_engine
 
 import ../userdata
+import options
 
 const OBJECT_COLL = 42 * 2
 
 type 
-    ObjectKind = enum
+    ObjectKind* = enum
         okRock,
         okMagmaRock,
         okDeadRockman,
@@ -15,7 +17,7 @@ type
         okButton
 
     PhysicalObject* = ref object 
-        case kind: ObjectKind
+        case kind*: ObjectKind
         of okButton: 
             active*: bool
             active_timer: float
@@ -25,6 +27,11 @@ type
         phys_body*: Body
         phys_shape*: Shape
         user_data: UserData
+
+        move_wav: Option[WavHandle]
+        move_sound: AudioHandle
+        vel_timer: float
+
         dead*: bool
         next_die: bool
 
@@ -62,6 +69,16 @@ proc update*(this: var PhysicalObject, space: Space) =
 
     if this.next_die:
         this.die(space)
+    this.vel_timer -= dt
+    if this.move_wav.isSome:
+        var vel = this.phys_body.velocity.vlength
+        vel = min(vel, 40.0)
+        vel /= 40.0
+        if vel < 0.1:
+            vel = 0.0
+        else:
+            this.vel_timer = 1.0
+        this.move_sound.set_volume(max(vel, this.vel_timer))
 
     if this.kind == okButton:
         if this.active:
@@ -92,6 +109,8 @@ proc create_rock*(pos: Vec2f, space: Space, id: int): PhysicalObject =
     result.phys_shape.userData = addr result.user_data
     result.phys_body.position = v(pos.x, pos.y)
     result.phys_shape.friction = 0.1
+    result.move_wav = some(load_sound("res/objects/roll.mp3"))
+    result.move_sound = result.move_wav.get().play_sound(true)
 
 
 proc create_magmarock*(pos: Vec2f, space: Space, id: int): PhysicalObject = 
@@ -106,6 +125,9 @@ proc create_magmarock*(pos: Vec2f, space: Space, id: int): PhysicalObject =
     result.phys_shape.userData = addr result.user_data
     result.phys_body.position = v(pos.x, pos.y)
     result.phys_shape.friction = 0.1
+    
+    result.move_wav = some(load_sound("res/objects/roll_lava.mp3"))
+    result.move_sound = result.move_wav.get().play_sound(true)
 
 
 proc create_deadrockman*(pos: Vec2f, space: Space, id: int): PhysicalObject =

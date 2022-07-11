@@ -37,6 +37,8 @@ type Level* = ref object
     deco: seq[AnimatedSprite]
     kill: seq[Vec4f]
 
+    reinit*: bool
+
     die_timer: float
     die_sprite: Sprite
     die_sound: WavHandle
@@ -46,6 +48,7 @@ type Level* = ref object
 
 
 proc init_no_map(this: var Level, scale: int) = 
+    this.reinit = true
     this.player = create_player(this.map.points["player"][0], this.physics_space)
     this.die_timer = -1.0
 
@@ -53,6 +56,10 @@ proc init_no_map(this: var Level, scale: int) =
     if this.map.points.hasKey("rockman"):
         for point in this.map.points["rockman"]:
             this.enemies.add(create_rockman(point, this.physics_space, this.enemies.len))
+    
+    if this.map.points.hasKey("bird"):
+        for point in this.map.points["bird"]:
+            this.enemies.add(create_bird(point, this.physics_space, this.enemies.len))
 
     if this.map.points.hasKey("rockman_spawner"):
         for point in this.map.points["rockman_spawner"]:
@@ -172,6 +179,7 @@ proc init*(this: var Level, map: string, backdrop: string, backdrop_fx: string, 
     init_no_map(this, this.scale)
 
 proc update*(this: var Level): bool = 
+    this.reinit = false
     # we do multiple substeps to prevent pass-through
     # TODO: Tune this
     const steps = 4

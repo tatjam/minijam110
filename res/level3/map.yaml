@@ -78,6 +78,9 @@ points:
 -   name: rockman
     color: [255, 100, 50]
 
+-   name: bird
+    color: [60, 160, 60]
+
 -   name: door
     color: [0, 51, 255]
 

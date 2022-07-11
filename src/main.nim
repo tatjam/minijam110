@@ -3,11 +3,12 @@ import nimgl/[glfw]
 #import game/scenes/level1
 #import game/scenes/cutsc1
 #import game/scenes/level2
-import game/scenes/level3
+#import game/scenes/level3
+import game/scenes/cutsc2
 
 include engine/base
 
-goto_scene(Level3Scene())
+goto_scene(CutScene2())
 
 
 proc update() = 

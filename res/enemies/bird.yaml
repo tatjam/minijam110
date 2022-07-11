@@ -1,0 +1,26 @@
+sprite: res/enemies/bird.png
+fx_sprite: none
+scale_origin: [19.0, 23.0]
+animations:
+-   name: "normal"
+    loop: true
+    frames:
+        -   clip: [0, 0, 50, 36]
+            duration: 0.2
+        -   clip: [50, 0, 50, 36]
+            duration: 0.2
+        -   clip: [100, 0, 50, 36]
+            duration: 0.2
+        -   clip: [150, 0, 50, 36]
+            duration: 0.2
+-   name: "bloody"
+    loop: true
+    frames:
+        -   clip: [0, 36, 50, 36]
+            duration: 0.2
+        -   clip: [50, 36, 50, 36]
+            duration: 0.2
+        -   clip: [100, 36, 50, 36]
+            duration: 0.2
+        -   clip: [150, 36, 50, 36]
+            duration: 0.2
